@@ -284,6 +284,13 @@ nav#nav button.on{background:var(--accent-soft); color:var(--accent)}
 .hero textarea{min-height:72px; margin-top:8px}
 .hero .btn{box-shadow:0 3px 12px rgba(0,0,0,.25)}
 
+/* Tappable task rows */
+.task.tappable{cursor:pointer; border-radius:10px; padding-left:8px; padding-right:8px; margin-left:-8px; margin-right:-8px; -webkit-tap-highlight-color:transparent}
+@media(hover:hover){ .task.tappable:hover{background:var(--surface2)} }
+.task.tappable:focus-visible{outline:2px solid var(--accent2); outline-offset:-2px}
+.task.tappable:active{background:var(--surface2)}
+.task .box{width:24px; height:24px; border-radius:8px; display:grid; place-items:center}
+
 /* Health metric tiles + sparklines */
 .mtiles{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
 @media(min-width:560px){.mtiles{grid-template-columns:repeat(3,1fr)}}
@@ -430,7 +437,9 @@ window.addEventListener('hashchange', ()=>{ const h=location.hash.replace('#',''
 // ------- task bits -------
 function taskRow(t, showProj=true){
   const div=document.createElement('div');
-  div.className='task'+(t.status==='done'?' done':'');
+  div.className='task tappable'+(t.status==='done'?' done':'');
+  div.setAttribute('role','button'); div.tabIndex=0;
+  div.setAttribute('aria-label','Toggle done: '+t.title);
   const over = t.due_date && t.due_date < todayStr() && t.status!=='done';
   const proj = t.project_id ? projById(t.project_id) : null;
   const meta=[];
@@ -438,17 +447,27 @@ function taskRow(t, showProj=true){
   if(t.priority===1) meta.push('<span class="chip amber">P1</span>');
   if(t.due_date) meta.push('<span class="small '+(over?'overdue':'muted')+'">'+(over?'overdue · ':'due ')+fmtD(t.due_date)+'</span>');
   if(t.source && t.source!=='manual') meta.push('<span class="chip">'+esc(t.source)+'</span>');
-  div.innerHTML = '<button class="box" aria-label="Toggle done">✓</button><div class="t"><div>'+esc(t.title)+'</div>'+
+  div.innerHTML = '<span class="box" aria-hidden="true">✓</span><div class="t"><div>'+esc(t.title)+'</div>'+
     (meta.length?'<div class="meta">'+meta.join('')+'</div>':'')+
     (t.notes?'<div class="small muted">'+esc(t.notes)+'</div>':'')+'</div>';
-  div.querySelector('.box').onclick = async ()=>{
+  let busy=false;
+  const toggle = async ()=>{
+    if(busy) return; busy=true;
     const done = t.status!=='done';
     t.status = done?'done':'todo';
     div.classList.toggle('done', done);
-    await q(sb.from('tasks').update({status:t.status, completed_at: done?new Date().toISOString():null, updated_at:new Date().toISOString()}).eq('id',t.id),'Update task');
-    S.tasksOpen = S.tasksOpen.filter(x=>x.id!==t.id || x.status!=='done');
-    if(done) toast('Done ✓');
+    try{
+      await q(sb.from('tasks').update({status:t.status, completed_at: done?new Date().toISOString():null, updated_at:new Date().toISOString()}).eq('id',t.id),'Update task');
+      if(done){ S.tasksOpen = S.tasksOpen.filter(x=>x.id!==t.id); toast('Done ✓ — tap again to undo'); }
+      else { if(!S.tasksOpen.some(x=>x.id===t.id)) S.tasksOpen.push(t); toast('Back to open'); }
+    }catch(e){
+      t.status = done?'todo':'done';
+      div.classList.toggle('done', t.status==='done');
+    }
+    busy=false;
   };
+  div.onclick = toggle;
+  div.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } });
   return div;
 }
 async function addTask(title, projectId, due, priority=2){
