@@ -945,8 +945,36 @@ const PROMPTS=[
   'What did your energy feel like today, and what shaped it?',
 ];
 async function vReflect(m){
-  const entries = await q(sb.from('reflections').select('*').order('created_at',{ascending:false}).limit(10),'Reflections');
+  const results = await Promise.all([
+    q(sb.from('reflections').select('*').order('created_at',{ascending:false}).limit(10),'Reflections'),
+    q(sb.from('gratitude_logs').select('*').order('entry_date',{ascending:false}).limit(40),'Gratitude'),
+  ]);
+  const entries=results[0], glogs=results[1];
   m.innerHTML='';
+  const gToday=glogs.find(r=>r.entry_date===todayStr());
+  const have=new Set(glogs.map(r=>r.entry_date));
+  let streak=0;
+  { const d=new Date(todayStr()+'T12:00:00'); if(!have.has(todayStr())) d.setDate(d.getDate()-1);
+    while(have.has(d.toLocaleDateString('en-CA'))){ streak++; d.setDate(d.getDate()-1); } }
+
+  const gc=document.createElement('div'); gc.className='card';
+  gc.innerHTML='<h2>Gratitude'+(streak>0?'<span class="spacer"></span><span class="chip accent">'+streak+'-day streak</span>':'')+'</h2>';
+  if(gToday){
+    gc.innerHTML+='<div class="serif" style="line-height:1.7">'+(Array.isArray(gToday.items)?gToday.items:[]).map(i=>'<div>• '+esc(i)+'</div>').join('')+'</div>'+
+      '<div class="small muted" style="margin-top:6px">Logged for today ✓</div>';
+  } else {
+    gc.innerHTML+='<div class="small muted" style="margin-bottom:8px">Before bed: three things from today you\'re grateful for.</div>'+
+      '<input class="gr-i" placeholder="1."><input class="gr-i" placeholder="2." style="margin-top:8px"><input class="gr-i" placeholder="3." style="margin-top:8px">'+
+      '<button class="btn small" id="gr-go" style="margin-top:10px">Save tonight\'s three</button>';
+    gc.querySelector('#gr-go').onclick=async ()=>{
+      const items=[...gc.querySelectorAll('.gr-i')].map(i=>i.value.trim()).filter(Boolean);
+      if(!items.length){ toast('Write at least one'); return; }
+      await q(sb.from('gratitude_logs').upsert({entry_date:todayStr(), items}, {onConflict:'entry_date'}),'Save gratitude');
+      render(); toast('Saved — sleep well');
+    };
+  }
+  m.appendChild(gc);
+
   const dayIdx=Math.floor(Date.now()/864e5)%PROMPTS.length;
   const c1=document.createElement('div'); c1.className='card';
   c1.innerHTML='<h2>Today\'s prompt</h2><div class="serif" style="font-size:17px; margin-bottom:10px">'+esc(PROMPTS[dayIdx])+'</div>'+
