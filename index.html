@@ -1206,7 +1206,13 @@ async function saveLive(){
   const entries=liveLog.slice(); liveLog=[];
   liveCleanup();
   if(!entries.some(l=>l.who==='me')){ closeModal(); toast('Nothing captured'); return; }
-  await q(sb.from('voice_captures').insert({transcript:liveTranscript(entries)}),'Save capture');
+  try{
+    await q(sb.from('voice_captures').insert({transcript:liveTranscript(entries)}),'Save capture');
+  }catch(e){
+    liveLog=entries; renderLiveLog();
+    const st=document.getElementById('mic-status'); if(st) st.textContent='Save failed — check connection and tap End & save again.';
+    return;
+  }
   closeModal(); toast('Captured — Claude will parse this into your projects');
   if(S.view==='today') render();
 }
@@ -1237,9 +1243,10 @@ async function startLive(){
     if(!sr.ok) throw new Error('call setup failed ('+sr.status+')');
     const answer=await sr.text();
     await livePC.setRemoteDescription({type:'answer', sdp:answer});
+    if(!document.getElementById('mic-big')){ liveCleanup(); return; }
     micBtn.classList.add('listening');
     st.textContent='Live — talk it through. Say you\'re done when finished, then tap End & save.';
-    $('#mic-save').style.display='block';
+    const sv=document.getElementById('mic-save'); if(sv) sv.style.display='block';
     liveTimer=setTimeout(()=>{ toast('Session auto-ended at 10 min'); saveLive(); }, 600000);
   }catch(e){
     liveCleanup();
