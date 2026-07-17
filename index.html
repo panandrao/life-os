@@ -1039,11 +1039,38 @@ async function vReflect(m){
 
 // COACH
 async function vCoach(m){
-  const [notes, inbox] = await Promise.all([
+  const [notes, inbox, wos] = await Promise.all([
     q(sb.from('coach_notes').select('*').neq('status','dismissed').order('created_at',{ascending:false}).limit(20),'Coach notes'),
     q(sb.from('claude_inbox').select('*').order('created_at',{ascending:false}).limit(10),'Inbox'),
+    q(sb.from('work_orders').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(8),'Work orders'),
   ]);
   m.innerHTML='';
+
+  // Work orders: delegate real production work
+  const cw=document.createElement('div'); cw.className='card';
+  cw.innerHTML='<h2>Work orders</h2><div class="small muted" style="margin-bottom:8px">Delegate real production work — drafting, revising, building materials. Claude runs it on your Mac using your skills and files, saves <em>drafts only</em> (nothing gets sent or published), and reports back here — usually within the workday.</div>'+
+    '<textarea id="wo-text" placeholder="e.g. Draft the Jul 31 workshop run-of-show, starting from the Feb 2026 decks…" style="min-height:64px"></textarea>'+
+    '<div class="addrow">'+projSelect('wo-proj')+'<button class="btn small" id="wo-go" style="margin-left:auto">Queue work order</button></div><div id="wo-list"></div>';
+  m.appendChild(cw);
+  cw.querySelector('#wo-go').onclick=async ()=>{
+    const v=$('#wo-text').value.trim(); if(!v) return;
+    await q(sb.from('work_orders').insert({instruction:v, project_id:$('#wo-proj').value||null, source:'app'}),'Queue order');
+    render(); toast('Queued — Claude picks this up on its next pass');
+  };
+  const wl=cw.querySelector('#wo-list');
+  const WO_CHIP={queued:['queued','accent'], running:['running','amber'], done:['done',''], failed:['failed',''], question:['needs your input','amber']};
+  for(const w of wos){
+    const st=WO_CHIP[w.status]||[w.status,''];
+    const p=w.project_id?projById(w.project_id):null;
+    const d=document.createElement('div'); d.className='note'+(w.status!=='done'&&w.status!=='failed'?' new':'');
+    d.innerHTML='<div>'+esc(w.instruction)+'</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span class="chip '+st[1]+'">'+st[0]+'</span>'+(p?'<span class="chip">'+esc(p.name)+'</span>':'')+'<span class="small muted">'+fmtD(w.created_at.slice(0,10))+'</span></div>'+
+      (w.result_md?'<div class="body" style="margin-top:6px; padding-left:10px; border-left:3px solid var(--accent)">'+md(w.result_md)+'</div>':'')+
+      ((Array.isArray(w.output_paths)&&w.output_paths.length)?'<div class="small mono muted" style="margin-top:4px; word-break:break-all">'+w.output_paths.map(pp=>esc(pp)).join('<br>')+'</div>':'')+
+      '<div style="display:flex; margin-top:4px"><button class="small muted" style="margin-left:auto" aria-label="Archive order">✕</button></div>';
+    d.querySelector('button[aria-label="Archive order"]').onclick=async ()=>{ await q(sb.from('work_orders').update({status:'archived'}).eq('id',w.id),'Archive'); render(); };
+    wl.appendChild(d);
+  }
 
   const c1=document.createElement('div'); c1.className='card';
   c1.innerHTML='<h2>Message Claude</h2><div class="small muted" style="margin-bottom:8px">Ask for advice, delegate a task, or leave context. Claude reads these during your morning brief (or when you chat directly).</div>'+
@@ -1085,6 +1112,7 @@ async function vCoach(m){
     '<p style="margin-bottom:6px">• Scheduled runs need your Mac awake with the Claude app open; otherwise they run at next launch.</p>'+
     '<p style="margin-bottom:6px">• <strong>Notes for planning</strong> (Today tab) feed the next brief and weekly review — commentary in, adjusted plan out.</p>'+
     '<p style="margin-bottom:6px">• <strong>Voice capture</strong> (mic button) — talk through tasks free-form; Claude parses them into projects every ~2 hours, 8am–8pm.</p>'+
+    '<p style="margin-bottom:6px">• <strong>Work orders</strong> — delegated production work runs on your Mac every ~2 hours (9am–7pm), one order at a time, drafts only.</p>'+
     '<p>• You can also just chat with Claude anytime — it manages this same database.</p></div>';
   m.appendChild(c4);
 }
