@@ -797,9 +797,10 @@ async function vHealth(m){
   // Build date→metric map
   const byDay={};
   for(const l of logs){
-    (byDay[l.log_date] ||= {});
-    if(l.metric==='workout') byDay[l.log_date].workout=(byDay[l.log_date].workout||0)+Number(l.value||0);
-    else byDay[l.log_date][l.metric]=Number(l.value);
+    const d=(byDay[l.log_date] ||= {});
+    if(l.metric==='workout') d.workout=(d.workout||0)+Number(l.value||0);
+    else if(l.metric==='steps'){ if(l.source==='oura' || d.steps==null) d.steps=Math.round(Number(l.value)); }
+    else d[l.metric]=Number(l.value);
   }
   const allDays=Object.keys(byDay).sort();
   // Cumulative metrics accrue over the day, so today's value is partial — exclude it from tiles/averages.
