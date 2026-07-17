@@ -682,7 +682,9 @@ async function vProject(m, pid){
   };
   tc.querySelector('#pt-title').addEventListener('keydown',e=>{ if(e.key==='Enter') tc.querySelector('#pt-go').click(); });
   if(done.length){
-    tc.innerHTML+='<hr class="sep"><div class="small muted" style="margin-bottom:4px">Recently completed</div>';
+    const dv=document.createElement('div');
+    dv.innerHTML='<hr class="sep"><div class="small muted" style="margin-bottom:4px">Recently completed</div>';
+    tc.appendChild(dv);
     for(const t of done) tc.appendChild(taskRow(t,false));
   }
   m.appendChild(tc);
