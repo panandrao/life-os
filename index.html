@@ -1149,8 +1149,43 @@ function voiceModal(){
 }
 $('#fab').onclick=voiceModal;
 $('#modal-bg').addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
+function vapidKey(){
+  const s='BAfG6N8rT47W7LKmQ_4HOHS0DzL45BxdkS2BgnbDiLrjdZMRGnmLkWAqCZAvgqxaSQox-8JxmuUjwq_2DJB33mc';
+  const b=atob(s.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(s.length/4)*4,'='));
+  return Uint8Array.from(b, c=>c.charCodeAt(0));
+}
 $('#gear').onclick=()=>{
-  openModal('<h3>Settings</h3><label>New password</label><input id="st-pw" type="password" autocomplete="new-password"><button class="btn small" id="st-pw-go" style="margin-top:10px">Change password</button><hr class="sep"><button class="btn ghost" id="st-out" style="width:100%">Sign out</button>');
+  openModal('<h3>Settings</h3>'+
+    '<label>Notifications</label><div id="st-push-status" class="small muted" style="margin-bottom:8px"></div>'+
+    '<button class="btn small" id="st-push">Enable notifications on this device</button>'+
+    '<hr class="sep"><label>New password</label><input id="st-pw" type="password" autocomplete="new-password"><button class="btn small" id="st-pw-go" style="margin-top:10px">Change password</button>'+
+    '<hr class="sep"><button class="btn ghost" id="st-out" style="width:100%">Sign out</button>');
+  const pstat=$('#st-push-status');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(!('Notification' in window) || !('PushManager' in window)){
+    pstat.textContent = isiOS ? 'On iPhone: add RaoOS to your Home Screen first, then enable from the installed app.' : 'Not supported in this browser.';
+    $('#st-push').disabled=true;
+  } else if(isiOS && !isStandalone){
+    pstat.textContent='On iPhone: add RaoOS to your Home Screen first, then enable from the installed app.';
+  } else if(Notification.permission==='granted'){
+    pstat.textContent='Enabled on this device ✓ — tap again to re-sync if needed.';
+  } else {
+    pstat.textContent='Morning brief alert (~6:50 AM) and an evening gratitude nudge (9:30 PM, only if you haven\'t logged).';
+  }
+  $('#st-push').onclick=async ()=>{
+    try{
+      const reg = await navigator.serviceWorker.register('sw.js');
+      await navigator.serviceWorker.ready;
+      const perm = await Notification.requestPermission();
+      if(perm!=='granted'){ pstat.textContent='Permission was not granted — enable it in iOS Settings › Notifications › RaoOS.'; return; }
+      const sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:vapidKey()});
+      const sj = sub.toJSON();
+      await q(sb.from('push_subscriptions').upsert({endpoint:sj.endpoint, keys:sj.keys}, {onConflict:'endpoint'}),'Save subscription');
+      pstat.textContent='Enabled on this device ✓';
+      toast('Notifications on ✓');
+    }catch(e){ pstat.textContent='Could not enable: '+(e.message||e); }
+  };
   $('#st-pw-go').onclick=async ()=>{
     const pw=$('#st-pw').value; if(pw.length<8){ toast('Use at least 8 characters'); return; }
     const {error}=await sb.auth.updateUser({password:pw});
@@ -1185,6 +1220,7 @@ async function start(){
   const h=location.hash.replace('#','');
   setTab(TABS.some(t=>t[0]===h)?h:'today');
 }
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 start();
 </script>
 </body>
