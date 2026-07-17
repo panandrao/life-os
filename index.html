@@ -195,6 +195,94 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 table.h7{width:100%; border-collapse:collapse; font-size:13.5px; font-variant-numeric:tabular-nums}
 table.h7 th{font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); text-align:left; padding:4px 8px 4px 0; font-weight:500}
 table.h7 td{padding:5px 8px 5px 0; border-top:1px solid var(--line)}
+
+/* ============ RaoOS design v2 — brand layer ============ */
+:root{
+  --bg:#EEF1F7; --surface:#FFFFFF; --surface2:#E9EDF5; --ink:#17224D; --muted:#5B6683;
+  --line:#DDE3F0; --accent:#0B8377; --accent-soft:#DCF1EE; --on-accent:#FFFFFF;
+  --accent2:#2F6BEB; --accent3:#8B96F0;
+  --amber:#B45309; --amber-soft:#F7ECDD; --good:#2E8B57; --bad:#B03A2E;
+  --hero1:#17224D; --hero2:#22347C;
+  --shadow:0 1px 2px rgba(23,34,77,.05), 0 8px 28px rgba(23,34,77,.07);
+  --radius:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0A0F1F; --surface:#131A2C; --surface2:#1C2438; --ink:#E8EBF5; --muted:#96A1BE;
+    --line:#25304A; --accent:#31C4B4; --accent-soft:#102B31; --on-accent:#04211D;
+    --accent2:#6E97F5; --accent3:#9BA6F5;
+    --amber:#E2A45C; --amber-soft:#312616; --good:#5CB380; --bad:#D9705F;
+    --hero1:#1A2340; --hero2:#253465;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.3);
+  }
+}
+body::before{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(520px 340px at 12% -4%, rgba(20,178,166,.13), transparent 65%),
+    radial-gradient(560px 380px at 88% -6%, rgba(120,134,246,.12), transparent 65%),
+    var(--bg);
+}
+body{background:transparent}
+.card{border-radius:var(--radius)}
+.card h2{display:flex; align-items:center; gap:8px}
+.card h2::before{
+  content:''; flex:none; width:24px; height:8px;
+  background:
+    radial-gradient(circle at 4px 4px, var(--accent) 0 2.7px, transparent 3.1px),
+    radial-gradient(circle at 12px 4px, var(--accent2) 0 2.7px, transparent 3.1px),
+    radial-gradient(circle at 20px 4px, var(--accent3) 0 2.7px, transparent 3.1px);
+}
+.btn{background:linear-gradient(135deg,#12A797,#2F6BEB); border-radius:12px; color:#fff; box-shadow:0 3px 10px rgba(31,90,180,.28)}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--surface2); color:var(--ink); box-shadow:none}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent2); outline-offset:2px}
+.chip{border-radius:8px}
+#fab{background:linear-gradient(135deg,#12A797,#2F6BEB); box-shadow:0 6px 20px rgba(18,140,160,.45)}
+
+/* Floating dock nav (mobile) */
+nav#nav{
+  left:10px; right:10px; bottom:calc(8px + env(safe-area-inset-bottom));
+  border:1px solid var(--line); border-top:1px solid var(--line);
+  border-radius:20px; padding:6px 4px;
+  background:rgba(255,255,255,.86);
+  -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  box-shadow:0 8px 30px rgba(23,34,77,.16);
+}
+@media (prefers-color-scheme: dark){ nav#nav{background:rgba(19,26,44,.86)} }
+nav#nav button{border-radius:12px; padding:6px 4px}
+nav#nav button.on{background:var(--accent-soft); color:var(--accent)}
+.wrap{padding-bottom:110px}
+#toast{bottom:calc(96px + env(safe-area-inset-bottom))}
+@media(min-width:900px){
+  nav#nav{top:0; bottom:0; left:0; right:auto; border-radius:0; border:none; border-right:1px solid var(--line); box-shadow:none; background:var(--surface); -webkit-backdrop-filter:none; backdrop-filter:none; padding:24px 12px}
+  nav#nav button{border-radius:12px; padding:10px 12px}
+  .wrap{padding-bottom:40px}
+  #toast{bottom:32px}
+}
+
+/* Hero: greeting + capture hub */
+.card.hero{
+  background:linear-gradient(150deg, var(--hero1), var(--hero2));
+  border:none; color:#EDF1FF; overflow:hidden; position:relative;
+}
+.card.hero::after{
+  content:''; position:absolute; right:-40px; top:-52px; width:190px; height:190px; border-radius:50%;
+  border:22px solid rgba(46,199,184,.16); pointer-events:none;
+}
+.hero .kick{font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:#7FD9CE; margin-bottom:2px}
+.hero .greet{font-size:23px; font-weight:700; letter-spacing:-.01em; margin-bottom:10px}
+.hero .stats{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; position:relative; z-index:1}
+.hero .stat{font-size:12.5px; background:rgba(255,255,255,.12); border-radius:999px; padding:4px 11px; color:#D8E0F5}
+.hero .stat strong{color:#fff; font-variant-numeric:tabular-nums}
+.hero .seg{display:flex; background:rgba(255,255,255,.13); border-radius:13px; padding:3px; margin-bottom:10px; position:relative; z-index:1}
+.hero .seg button{flex:1; padding:8px 6px; border-radius:10px; color:rgba(240,244,255,.72); font-size:14px; font-weight:500}
+.hero .seg button.on{background:#fff; color:var(--hero1); font-weight:600}
+.hero input,.hero select,.hero textarea{background:#fff; color:#17224D; border:none}
+.hero input::placeholder,.hero textarea::placeholder{color:#7B86A6}
+.hero .addrow{margin-top:8px}
+.hero textarea{min-height:72px; margin-top:8px}
+.hero .btn{box-shadow:0 3px 12px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
@@ -373,11 +461,41 @@ async function vToday(m){
     q(sb.from('daily_briefs').select('*').order('brief_date',{ascending:false}).limit(1),'Brief'),
     q(sb.from('planning_notes').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(5),'Notes'),
     q(sb.from('voice_captures').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(3),'Captures'),
+    q(sb.from('tasks').select('id').eq('status','done').gte('completed_at', new Date(Date.now()-6*864e5).toISOString()),'Done count'),
   ]);
-  const briefs=results0[0], pnotes=results0[1], vcaps=results0[2];
+  const briefs=results0[0], pnotes=results0[1], vcaps=results0[2], doneWeek=results0[3].length;
   const brief = briefs[0];
   const today = todayStr();
   m.innerHTML='';
+
+  // Hero: greeting + capture hub
+  const hero=document.createElement('div'); hero.className='card hero';
+  const hr=new Date().getHours();
+  const greet = hr<12?'Good morning':(hr<17?'Good afternoon':'Good evening');
+  const dueCount = S.tasksOpen.filter(t=> (t.due_date && t.due_date<=today) || (t.scheduled_for && t.scheduled_for<=today)).length;
+  hero.innerHTML='<div class="kick">'+new Date().toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'})+'</div>'+
+    '<div class="greet">'+greet+', Anand.</div>'+
+    '<div class="stats"><span class="stat"><strong>'+dueCount+'</strong> for today</span><span class="stat"><strong>'+S.tasksOpen.length+'</strong> open</span><span class="stat"><strong>'+doneWeek+'</strong> shipped this week</span></div>'+
+    '<div class="seg"><button class="on" data-m="task">Task</button><button data-m="note">Note</button><button data-m="talk">Talk it out</button></div>'+
+    '<div id="cap-area"></div>';
+  m.appendChild(hero);
+  const capArea=hero.querySelector('#cap-area');
+  function renderCap(mode){
+    hero.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on', b.dataset.m===mode));
+    if(mode==='task'){
+      capArea.innerHTML='<div class="addrow"><input id="cap-task" placeholder="Add a task — anything on your mind…">'+projSelect('cap-proj')+'</div>'+
+        '<div class="addrow"><input id="cap-due" type="date" value="'+today+'" style="flex:0 1 auto"><button class="btn" id="cap-go" style="margin-left:auto">Add task</button></div>';
+      const go=async ()=>{ const v=$('#cap-task').value.trim(); if(!v) return; await addTask(v, $('#cap-proj').value, $('#cap-due').value||null); render(); toast('Task added'); };
+      capArea.querySelector('#cap-go').onclick=go;
+      capArea.querySelector('#cap-task').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+    } else if(mode==='note'){
+      capArea.innerHTML='<textarea id="cap-note" placeholder="Talk about the work: context, worries, ideas, thinking out loud — Claude folds it into your next brief and plan."></textarea>'+
+        '<button class="btn" id="cap-ngo" style="margin-top:8px">Save note</button>';
+      capArea.querySelector('#cap-ngo').onclick=async ()=>{ const v=$('#cap-note').value.trim(); if(!v) return; await q(sb.from('planning_notes').insert({content:v}),'Save note'); render(); toast('Noted — goes into your next brief'); };
+    } else { renderCap('task'); voiceModal(); return; }
+  }
+  hero.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>renderCap(b.dataset.m));
+  renderCap('task');
 
   // Brief
   const c1=document.createElement('div'); c1.className='card';
@@ -400,29 +518,15 @@ async function vToday(m){
   c3.innerHTML='<h2>Today\'s tasks</h2>';
   const dueToday = S.tasksOpen.filter(t=> (t.due_date && t.due_date<=today) || (t.scheduled_for && t.scheduled_for<=today))
     .sort((a,b)=> (a.due_date||'9999') < (b.due_date||'9999') ? -1 : a.priority-b.priority);
-  if(dueToday.length===0) c3.innerHTML+='<div class="empty">Nothing scheduled for today. Add something below, or check Projects.</div>';
+  if(dueToday.length===0) c3.innerHTML+='<div class="empty">Nothing scheduled for today. Add something in the box above, or check Projects.</div>';
   for(const t of dueToday) c3.appendChild(taskRow(t));
-  const add=document.createElement('div'); add.className='addrow';
-  add.innerHTML='<input id="qa-title" placeholder="Add a task for today…">'+projSelect('qa-proj')+'<button class="btn small" id="qa-go">Add</button>';
-  c3.appendChild(add);
-  c3.querySelector('#qa-go').onclick = async ()=>{
-    const v=$('#qa-title').value.trim(); if(!v) return;
-    await addTask(v, $('#qa-proj').value, today);
-    render(); toast('Added');
-  };
-  c3.querySelector('#qa-title').addEventListener('keydown',e=>{ if(e.key==='Enter') c3.querySelector('#qa-go').click(); });
   m.appendChild(c3);
 
-  // Planning notes capture
+  // Planning notes (recent list; input lives in the hero)
+  if(pnotes.length){
   const c5=document.createElement('div'); c5.className='card';
-  c5.innerHTML='<h2>Notes for planning</h2><div class="small muted" style="margin-bottom:8px">Thoughts, commentary, context — saved notes get folded into your next daily brief and weekly review.</div>'+
-    '<textarea id="pn-text" placeholder="e.g. Feeling stretched on SCPS — considering making office hours async this month…" style="min-height:60px"></textarea>'+
-    '<button class="btn small" id="pn-go" style="margin-top:8px">Save note</button><div id="pn-list"></div>';
+  c5.innerHTML='<h2>Notes for planning</h2><div class="small muted" style="margin-bottom:4px">Folded into your next brief and weekly review.</div><div id="pn-list"></div>';
   m.appendChild(c5);
-  c5.querySelector('#pn-go').onclick=async ()=>{
-    const v=$('#pn-text').value.trim(); if(!v) return;
-    await q(sb.from('planning_notes').insert({content:v}),'Save note'); render(); toast('Noted — goes into your next brief');
-  };
   const pl=c5.querySelector('#pn-list');
   for(const n of pnotes){
     const d=document.createElement('div'); d.className='task';
@@ -430,6 +534,7 @@ async function vToday(m){
       '<button class="small muted" aria-label="Archive note">✕</button>';
     d.querySelector('button').onclick=async ()=>{ await q(sb.from('planning_notes').update({status:'archived'}).eq('id',n.id),'Archive'); render(); };
     pl.appendChild(d);
+  }
   }
 
   // Voice captures status
