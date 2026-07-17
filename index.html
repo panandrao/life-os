@@ -143,6 +143,16 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 #toast.on{opacity:1}
 @media(min-width:900px){#toast{bottom:32px}}
 
+/* Voice capture */
+#fab{position:fixed; right:16px; bottom:calc(78px + env(safe-area-inset-bottom)); z-index:50; width:56px; height:56px; border-radius:50%; background:var(--accent); color:var(--on-accent); box-shadow:0 4px 14px rgba(10,15,20,.3); display:grid; place-items:center}
+#fab svg{width:26px; height:26px}
+@media(min-width:900px){#fab{bottom:28px; right:28px}}
+#mic-big{width:84px; height:84px; border-radius:50%; background:var(--accent-soft); color:var(--accent); display:grid; place-items:center; margin:10px auto; border:2px solid var(--accent)}
+#mic-big.listening{background:var(--accent); color:var(--on-accent); animation:micpulse 1.6s infinite}
+#mic-big:disabled{opacity:.4}
+@keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(14,122,111,.4)}70%{box-shadow:0 0 0 16px rgba(14,122,111,0)}100%{box-shadow:0 0 0 0 rgba(14,122,111,0)}}
+@media (prefers-reduced-motion: reduce){#mic-big.listening{animation:none}}
+
 /* Mood + breathing */
 .mood{display:flex; gap:8px}
 .mood button{width:38px; height:38px; border-radius:50%; background:var(--surface2); font-size:17px; display:grid; place-items:center; border:2px solid transparent}
@@ -199,6 +209,9 @@ table.h7 td{padding:5px 8px 5px 0; border-top:1px solid var(--line)}
 </div>
 
 <div id="shell">
+  <button id="fab" aria-label="Voice capture" title="Voice capture">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/></svg>
+  </button>
   <nav id="nav">
     <div class="brand">Life OS</div>
   </nav>
@@ -355,8 +368,9 @@ async function vToday(m){
   const results0 = await Promise.all([
     q(sb.from('daily_briefs').select('*').order('brief_date',{ascending:false}).limit(1),'Brief'),
     q(sb.from('planning_notes').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(5),'Notes'),
+    q(sb.from('voice_captures').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(3),'Captures'),
   ]);
-  const briefs=results0[0], pnotes=results0[1];
+  const briefs=results0[0], pnotes=results0[1], vcaps=results0[2];
   const brief = briefs[0];
   const today = todayStr();
   m.innerHTML='';
@@ -412,6 +426,23 @@ async function vToday(m){
       '<button class="small muted" aria-label="Archive note">✕</button>';
     d.querySelector('button').onclick=async ()=>{ await q(sb.from('planning_notes').update({status:'archived'}).eq('id',n.id),'Archive'); render(); };
     pl.appendChild(d);
+  }
+
+  // Voice captures status
+  if(vcaps.length){
+    const c6=document.createElement('div'); c6.className='card';
+    c6.innerHTML='<h2>Voice captures</h2>';
+    for(const vc of vcaps){
+      const d=document.createElement('div'); d.className='note'+(vc.status==='new'?' new':'');
+      const snip = vc.transcript.length>180 ? vc.transcript.slice(0,180)+'…' : vc.transcript;
+      d.innerHTML='<div class="small muted" style="font-style:italic">"'+esc(snip)+'"</div>'+
+        (vc.result_summary?'<div class="body" style="margin-top:4px">'+md(vc.result_summary)+'</div>':'')+
+        '<div class="row" style="margin-top:4px"><span class="chip'+(vc.status==='new'?' accent':'')+'">'+(vc.status==='new'?'waiting for Claude':'processed')+'</span><span class="small muted">'+fmtD(vc.created_at.slice(0,10))+'</span>'+
+        '<button class="small muted" style="margin-left:auto" aria-label="Archive capture">✕</button></div>';
+      d.querySelector('button').onclick=async ()=>{ await q(sb.from('voice_captures').update({status:'archived'}).eq('id',vc.id),'Archive'); render(); };
+      c6.appendChild(d);
+    }
+    m.appendChild(c6);
   }
 
   // Upcoming (next 7 days)
@@ -779,13 +810,72 @@ async function vCoach(m){
     '<p style="margin-bottom:6px">• <strong>Sunday 5:00 PM</strong> — weekly review: project progress, what to adjust, plan for the week.</p>'+
     '<p style="margin-bottom:6px">• Scheduled runs need your Mac awake with the Claude app open; otherwise they run at next launch.</p>'+
     '<p style="margin-bottom:6px">• <strong>Notes for planning</strong> (Today tab) feed the next brief and weekly review — commentary in, adjusted plan out.</p>'+
+    '<p style="margin-bottom:6px">• <strong>Voice capture</strong> (mic button) — talk through tasks free-form; Claude parses them into projects every ~2 hours, 8am–8pm.</p>'+
     '<p>• You can also just chat with Claude anytime — it manages this same database.</p></div>';
   m.appendChild(c4);
 }
 
 // ------- modal & settings -------
 function openModal(html){ $('#modal').innerHTML=html; $('#modal-bg').classList.add('on'); }
-function closeModal(){ $('#modal-bg').classList.remove('on'); }
+function closeModal(){ stopVoice(); $('#modal-bg').classList.remove('on'); }
+
+// ------- voice capture -------
+let recogWanted=false, recogRef=null;
+function stopVoice(){
+  recogWanted=false;
+  if(recogRef){ try{ recogRef.stop(); }catch(e){} recogRef=null; }
+  const mb=document.getElementById('mic-big'); if(mb) mb.classList.remove('listening');
+}
+function voiceModal(){
+  openModal('<h3>Voice capture</h3><div class="small muted" style="margin-bottom:6px">Talk through tasks, projects, changes — completely free-form. Claude parses it into the right projects (checks every couple of hours, or ask it to process now).</div>'+
+    '<button id="mic-big" aria-label="Start or stop listening"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/></svg></button>'+
+    '<div id="mic-status" class="small muted" style="text-align:center; min-height:18px">Tap the mic to start</div>'+
+    '<div id="mic-interim" class="small muted" style="font-style:italic; min-height:18px"></div>'+
+    '<label class="small muted" style="display:block; margin-top:8px">Transcript (edit freely before saving)</label>'+
+    '<textarea id="mic-text" style="min-height:110px" placeholder="Or type here — your keyboard\'s dictation mic works too."></textarea>'+
+    '<button class="btn" id="mic-save" style="width:100%; margin-top:12px">Save for processing</button>');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn=$('#mic-big'), st=$('#mic-status'), interim=$('#mic-interim'), ta=$('#mic-text');
+  if(!SR){
+    st.textContent='Live transcription isn\'t supported in this browser — use your keyboard\'s dictation mic in the box below.';
+    micBtn.disabled=true;
+  } else {
+    micBtn.onclick=()=>{
+      if(recogWanted){ stopVoice(); st.textContent='Paused — tap to resume'; return; }
+      recogWanted=true; micBtn.classList.add('listening'); st.textContent='Listening… speak freely';
+      const r=new SR(); recogRef=r;
+      r.continuous=true; r.interimResults=true; r.lang='en-US';
+      r.onresult=(e)=>{
+        let it='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          const res=e.results[i];
+          if(res.isFinal){ const txt=res[0].transcript.trim(); if(txt) ta.value=(ta.value?ta.value.replace(/\s+$/,'')+' ':'')+txt; }
+          else it+=res[0].transcript;
+        }
+        interim.textContent=it;
+      };
+      r.onerror=(e)=>{
+        if(e.error==='not-allowed' || e.error==='service-not-allowed'){
+          stopVoice(); st.textContent='Microphone permission denied — allow it in browser settings, or use the keyboard mic.';
+        }
+      };
+      r.onend=()=>{
+        interim.textContent='';
+        if(recogWanted && recogRef===r){ try{ r.start(); }catch(err){} }
+        else if(!recogWanted) micBtn.classList.remove('listening');
+      };
+      try{ r.start(); }catch(err){ stopVoice(); st.textContent='Could not start listening: '+err.message; }
+    };
+  }
+  $('#mic-save').onclick=async ()=>{
+    const v=ta.value.trim(); if(!v){ toast('Nothing to save yet'); return; }
+    stopVoice();
+    await q(sb.from('voice_captures').insert({transcript:v}),'Save capture');
+    closeModal(); toast('Captured — Claude will parse this into your projects');
+    if(S.view==='today') render();
+  };
+}
+$('#fab').onclick=voiceModal;
 $('#modal-bg').addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
 $('#gear').onclick=()=>{
   openModal('<h3>Settings</h3><label>New password</label><input id="st-pw" type="password" autocomplete="new-password"><button class="btn small" id="st-pw-go" style="margin-top:10px">Change password</button><hr class="sep"><button class="btn ghost" id="st-out" style="width:100%">Sign out</button>');
