@@ -763,11 +763,14 @@ const HMETRICS={
   resp_rate:{label:'Resp Rate',unit:'br/min',dec:1,better:'neutral'},
   activity_score:{label:'Activity',unit:'',dec:0,better:'high'},
   active_cal:{label:'Active Cal',unit:'kcal',dec:0,better:'high'},
+  exercise_min:{label:'Exercise',unit:'min',dec:0,better:'high'},
+  vo2_max:{label:'VO₂ Max',unit:'',dec:1,better:'high'},
   workout:{label:'Workout',unit:'min',dec:0,better:'high'},
   weight:{label:'Weight',unit:'lb',dec:1,better:'neutral'},
 };
-const TILE_ORDER=['sleep_hours','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','active_cal'];
-const TABLE_ORDER=['sleep_hours','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','rem_sleep','sleep_efficiency','steps','activity_score','active_cal','workout','weight'];
+// Watch tiles (exercise_min, vo2_max) only appear once Apple Health data exists — latest()==null skips them.
+const TILE_ORDER=['sleep_hours','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','active_cal','exercise_min','vo2_max'];
+const TABLE_ORDER=['sleep_hours','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','rem_sleep','sleep_efficiency','steps','activity_score','active_cal','exercise_min','vo2_max','workout','weight'];
 const SPARK_COLORS=['var(--accent)','var(--accent2)','var(--accent3)'];
 function sparkline(vals,color){
   vals=vals.filter(v=>v!=null);
