@@ -283,6 +283,26 @@ nav#nav button.on{background:var(--accent-soft); color:var(--accent)}
 .hero .addrow{margin-top:8px}
 .hero textarea{min-height:72px; margin-top:8px}
 .hero .btn{box-shadow:0 3px 12px rgba(0,0,0,.25)}
+
+/* Health metric tiles + sparklines */
+.mtiles{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+@media(min-width:560px){.mtiles{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.mtiles{grid-template-columns:repeat(4,1fr)}}
+.mtile{background:var(--surface2); border:1px solid var(--line); border-radius:14px; padding:10px 11px 8px}
+.mtile .lab{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+.mtile .val{font-size:22px; font-weight:700; letter-spacing:-.02em; line-height:1.1; margin-top:1px; font-variant-numeric:tabular-nums}
+.mtile .val .u{font-size:12px; font-weight:500; color:var(--muted); margin-left:2px}
+.mtile .spark{margin:5px 0 3px; height:32px}
+.mtile .sub{font-size:11px; color:var(--muted); display:flex; align-items:center; gap:5px; font-variant-numeric:tabular-nums}
+.mtile .delta{font-weight:600}
+.mtile .delta.good{color:var(--good)} .mtile .delta.bad{color:var(--bad)} .mtile .delta.flat{color:var(--muted)}
+.analysis{display:grid; gap:12px}
+@media(min-width:720px){.analysis{grid-template-columns:1fr 1fr}}
+.analysis .blk{background:var(--surface2); border-radius:14px; padding:13px 15px}
+.analysis .blk h4{font-size:12px; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); margin-bottom:6px; display:flex; gap:8px; align-items:baseline}
+.analysis .blk h4 .rng{color:var(--muted); font-size:10.5px; margin-left:auto; letter-spacing:0}
+.analysis .body{font-family:'IBM Plex Serif',Georgia,serif; font-size:14.5px; line-height:1.6}
+.analysis .body strong{font-family:'IBM Plex Sans',sans-serif}
 </style>
 </head>
 <body>
@@ -730,15 +750,105 @@ async function vGoals(m){
 }
 
 // HEALTH
+const HMETRICS={
+  sleep_hours:{label:'Sleep',unit:'h',dec:1,better:'high'},
+  sleep_score:{label:'Sleep Score',unit:'',dec:0,better:'high'},
+  readiness:{label:'Readiness',unit:'',dec:0,better:'high'},
+  hrv:{label:'HRV',unit:'ms',dec:0,better:'high'},
+  resting_hr:{label:'Resting HR',unit:'bpm',dec:0,better:'low'},
+  steps:{label:'Steps',unit:'',dec:0,better:'high'},
+  deep_sleep:{label:'Deep Sleep',unit:'h',dec:1,better:'high'},
+  rem_sleep:{label:'REM Sleep',unit:'h',dec:1,better:'high'},
+  sleep_efficiency:{label:'Sleep Effic.',unit:'%',dec:0,better:'high'},
+  resp_rate:{label:'Resp Rate',unit:'br/min',dec:1,better:'neutral'},
+  activity_score:{label:'Activity',unit:'',dec:0,better:'high'},
+  active_cal:{label:'Active Cal',unit:'kcal',dec:0,better:'high'},
+  workout:{label:'Workout',unit:'min',dec:0,better:'high'},
+  weight:{label:'Weight',unit:'lb',dec:1,better:'neutral'},
+};
+const TILE_ORDER=['sleep_hours','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','active_cal'];
+const TABLE_ORDER=['sleep_hours','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','rem_sleep','sleep_efficiency','steps','activity_score','active_cal','workout','weight'];
+const SPARK_COLORS=['var(--accent)','var(--accent2)','var(--accent3)'];
+function sparkline(vals,color){
+  vals=vals.filter(v=>v!=null);
+  if(vals.length<2) return '<div style="height:32px"></div>';
+  const w=120,h=32,pad=3, mn=Math.min(...vals), mx=Math.max(...vals), rng=(mx-mn)||1;
+  const step=(w-2*pad)/(vals.length-1);
+  const pts=vals.map((v,i)=>[+(pad+i*step).toFixed(1), +(h-pad-((v-mn)/rng)*(h-2*pad)).toFixed(1)]);
+  const last=pts[pts.length-1];
+  const poly=pts.map(p=>p.join(',')).join(' ');
+  return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="width:100%;color:'+color+'">'+
+    '<polygon points="'+poly+' '+last[0]+','+(h-pad)+' '+pad+','+(h-pad)+'" fill="currentColor" opacity="0.11"/>'+
+    '<polyline points="'+poly+'" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.3" fill="currentColor"/></svg>';
+}
 async function vHealth(m){
   const today=todayStr();
-  const since=new Date(Date.now()-6*864e5).toLocaleDateString('en-CA');
+  const since=new Date(Date.now()-34*864e5).toLocaleDateString('en-CA');
   const [logs, foods] = await Promise.all([
-    q(sb.from('health_logs').select('*').gte('log_date',since).order('log_date',{ascending:false}),'Health'),
+    q(sb.from('health_logs').select('*').gte('log_date',since).order('log_date',{ascending:true}),'Health'),
     q(sb.from('food_logs').select('*').gte('eaten_at', today+'T00:00:00').order('eaten_at'),'Food'),
   ]);
   m.innerHTML='';
 
+  // Build date→metric map
+  const byDay={};
+  for(const l of logs){
+    (byDay[l.log_date] ||= {});
+    if(l.metric==='workout') byDay[l.log_date].workout=(byDay[l.log_date].workout||0)+Number(l.value||0);
+    else byDay[l.log_date][l.metric]=Number(l.value);
+  }
+  const allDays=Object.keys(byDay).sort();
+  const series=(metric,n)=>{ const days=allDays.slice(-n); return days.map(d=>byDay[d][metric]).filter(v=>v!=null); };
+  const avg=arr=>arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  const latest=metric=>{ for(let i=allDays.length-1;i>=0;i--){ const v=byDay[allDays[i]][metric]; if(v!=null) return v; } return null; };
+  const hasOura = logs.some(l=>l.source==='oura');
+  const fmtN=(v,dec)=> v==null?'—' : (dec? (Math.round(v*10)/10).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}) : Math.round(v).toLocaleString());
+
+  // ---- Analysis card ----
+  const ha=S.profile.health_analysis;
+  const cA=document.createElement('div'); cA.className='card';
+  const wkRange=fmtD(allDays[Math.max(0,allDays.length-7)])+' – '+fmtD(allDays[allDays.length-1]||today);
+  cA.innerHTML='<h2>Health analysis</h2>';
+  if(ha && (ha.week_md||ha.month_md)){
+    cA.innerHTML+='<div class="analysis">'+
+      '<div class="blk"><h4>This week <span class="rng">7-day</span></h4><div class="body">'+md(ha.week_md||'')+'</div></div>'+
+      '<div class="blk"><h4>This month <span class="rng">30-day</span></h4><div class="body">'+md(ha.month_md||'')+'</div></div></div>'+
+      (ha.generated_at?'<div class="small muted" style="margin-top:8px">Updated '+new Date(ha.generated_at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' · refreshes with your morning brief</div>':'');
+  } else if(hasOura){
+    cA.innerHTML+='<div class="small muted">Your first written analysis arrives with tomorrow\'s 6 AM brief. The live numbers below are current now.</div>';
+  } else {
+    cA.innerHTML+='<div class="empty">Analysis appears once there\'s a week of data. Log sleep and workouts below, or connect a device.</div>';
+  }
+  m.appendChild(cA);
+
+  // ---- Metric tiles ----
+  if(allDays.length){
+    const cT=document.createElement('div'); cT.className='card';
+    cT.innerHTML='<h2>Measurements</h2><div class="mtiles"></div>';
+    const grid=cT.querySelector('.mtiles');
+    let ci=0;
+    for(const key of TILE_ORDER){
+      const cfg=HMETRICS[key]; const lv=latest(key); if(lv==null) continue;
+      const a7=avg(series(key,7)), a30=avg(series(key,30));
+      let cls='flat', arrow='→';
+      if(a7!=null && a30!=null && Math.abs(a7-a30) > Math.abs(a30)*0.01){
+        const up=a7>a30; arrow=up?'↑':'↓';
+        const good = cfg.better==='neutral'? 'flat' : ((cfg.better==='high')===up ? 'good':'bad');
+        cls=good;
+      }
+      const color=SPARK_COLORS[ci++%3];
+      const tile=document.createElement('div'); tile.className='mtile';
+      tile.innerHTML='<div class="lab">'+cfg.label+'</div>'+
+        '<div class="val">'+fmtN(lv,cfg.dec)+(cfg.unit?'<span class="u">'+cfg.unit+'</span>':'')+'</div>'+
+        sparkline(series(key,14),color)+
+        '<div class="sub"><span class="delta '+cls+'">'+arrow+' 7d '+fmtN(a7,cfg.dec)+'</span><span>· 30d '+fmtN(a30,cfg.dec)+'</span></div>';
+      grid.appendChild(tile);
+    }
+    m.appendChild(cT);
+  }
+
+  // ---- Quick log ----
   const c1=document.createElement('div'); c1.className='card';
   c1.innerHTML='<h2>Quick log</h2><div class="qbtns">'+
     '<button class="btn ghost small" data-k="workout">+ Workout</button>'+
@@ -748,6 +858,7 @@ async function vHealth(m){
   c1.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>healthForm(b.dataset.k));
   m.appendChild(c1);
 
+  // ---- Food ----
   const c2=document.createElement('div'); c2.className='card';
   c2.innerHTML='<h2>Food today</h2>';
   if(!foods.length) c2.innerHTML+='<div class="empty">Nothing logged yet today.</div>';
@@ -768,31 +879,24 @@ async function vHealth(m){
   c2.querySelector('#fd-desc').addEventListener('keydown',e=>{ if(e.key==='Enter') c2.querySelector('#fd-go').click(); });
   m.appendChild(c2);
 
-  // 7-day table
-  const byDay={};
-  for(const l of logs){
-    byDay[l.log_date] = byDay[l.log_date]||{};
-    const d=byDay[l.log_date];
-    if(l.metric==='sleep_hours') d.sleep=l.value;
-    else if(l.metric==='sleep_score') d.sleepScore=l.value;
-    else if(l.metric==='workout') d.workout=(d.workout||0)+Number(l.value||0);
-    else if(l.metric==='steps') d.steps=l.value;
-    else if(l.metric==='weight') d.weight=l.value;
-    else if(l.metric==='readiness') d.readiness=l.value;
+  // ---- Full table (last 14 days, all metrics present) ----
+  if(allDays.length){
+    const cols=TABLE_ORDER.filter(k=> allDays.some(d=>byDay[d][k]!=null));
+    const days=allDays.slice(-14).reverse();
+    const c3=document.createElement('div'); c3.className='card';
+    c3.innerHTML='<h2>Last 14 days</h2><div style="overflow-x:auto"><table class="h7"><tr><th>Day</th>'+
+      cols.map(k=>'<th>'+HMETRICS[k].label+'</th>').join('')+'</tr>'+
+      days.map(d=>'<tr><td>'+fmtD(d)+'</td>'+cols.map(k=>'<td>'+fmtN(byDay[d][k], HMETRICS[k].dec)+'</td>').join('')+'</tr>').join('')+
+      '</table></div>';
+    m.appendChild(c3);
   }
-  const days=Object.keys(byDay).sort().reverse();
-  const c3=document.createElement('div'); c3.className='card';
-  c3.innerHTML='<h2>Last 7 days</h2>'+(days.length?
-    '<div style="overflow-x:auto"><table class="h7"><tr><th>Day</th><th>Sleep</th><th>Workout</th><th>Steps</th><th>Weight</th></tr>'+
-    days.map(d=>{const r=byDay[d]; return '<tr><td>'+fmtD(d)+'</td><td>'+(r.sleep!=null?r.sleep+' h':'—')+(r.sleepScore?' <span class="muted small">('+r.sleepScore+')</span>':'')+'</td><td>'+(r.workout?r.workout+' min':'—')+'</td><td>'+(r.steps??'—')+'</td><td>'+(r.weight??'—')+'</td></tr>';}).join('')+
-    '</table></div>' : '<div class="empty">No health data yet. Log something above — entries appear here and feed your daily brief.</div>');
-  m.appendChild(c3);
 
+  // ---- Devices ----
   const c4=document.createElement('div'); c4.className='card';
   const oura=S.profile.oura;
   c4.innerHTML='<h2>Devices</h2><div class="small">'+
     (oura && oura.token
-      ? '<span class="chip accent">Oura connected</span> Sleep, readiness, HRV, resting HR & steps sync automatically twice a day'+(oura.last_sync?' — last sync '+new Date(oura.last_sync).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):'')+'.'
+      ? '<span class="chip accent">Oura connected</span> Sleep, readiness, HRV, resting HR, respiratory rate, activity & steps sync automatically twice a day'+(oura.last_sync?' — last sync '+new Date(oura.last_sync).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):'')+'.'
       : 'Oura isn\'t connected yet — tell Claude: <em>"connect my Oura ring"</em> (needs a free personal access token).')+
     ' Apple Watch: tell Claude <em>"set up Apple Health import"</em>. Self-reported logs always work.</div>';
   m.appendChild(c4);
