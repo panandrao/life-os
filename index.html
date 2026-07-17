@@ -352,7 +352,11 @@ async function render(){
 
 // TODAY
 async function vToday(m){
-  const briefs = await q(sb.from('daily_briefs').select('*').order('brief_date',{ascending:false}).limit(1),'Brief');
+  const results0 = await Promise.all([
+    q(sb.from('daily_briefs').select('*').order('brief_date',{ascending:false}).limit(1),'Brief'),
+    q(sb.from('planning_notes').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(5),'Notes'),
+  ]);
+  const briefs=results0[0], pnotes=results0[1];
   const brief = briefs[0];
   const today = todayStr();
   m.innerHTML='';
@@ -390,6 +394,25 @@ async function vToday(m){
   };
   c3.querySelector('#qa-title').addEventListener('keydown',e=>{ if(e.key==='Enter') c3.querySelector('#qa-go').click(); });
   m.appendChild(c3);
+
+  // Planning notes capture
+  const c5=document.createElement('div'); c5.className='card';
+  c5.innerHTML='<h2>Notes for planning</h2><div class="small muted" style="margin-bottom:8px">Thoughts, commentary, context — saved notes get folded into your next daily brief and weekly review.</div>'+
+    '<textarea id="pn-text" placeholder="e.g. Feeling stretched on SCPS — considering making office hours async this month…" style="min-height:60px"></textarea>'+
+    '<button class="btn small" id="pn-go" style="margin-top:8px">Save note</button><div id="pn-list"></div>';
+  m.appendChild(c5);
+  c5.querySelector('#pn-go').onclick=async ()=>{
+    const v=$('#pn-text').value.trim(); if(!v) return;
+    await q(sb.from('planning_notes').insert({content:v}),'Save note'); render(); toast('Noted — goes into your next brief');
+  };
+  const pl=c5.querySelector('#pn-list');
+  for(const n of pnotes){
+    const d=document.createElement('div'); d.className='task';
+    d.innerHTML='<div class="t"><div>'+esc(n.content)+'</div><div class="meta"><span class="chip'+(n.status==='new'?' accent':'')+'">'+(n.status==='new'?'queued for planning':'incorporated')+'</span><span class="small muted">'+fmtD(n.created_at.slice(0,10))+'</span></div></div>'+
+      '<button class="small muted" aria-label="Archive note">✕</button>';
+    d.querySelector('button').onclick=async ()=>{ await q(sb.from('planning_notes').update({status:'archived'}).eq('id',n.id),'Archive'); render(); };
+    pl.appendChild(d);
+  }
 
   // Upcoming (next 7 days)
   const week = S.tasksOpen.filter(t=> t.due_date && t.due_date>today).sort((a,b)=>a.due_date<b.due_date?-1:1).slice(0,8);
@@ -755,6 +778,7 @@ async function vCoach(m){
     '<p style="margin-bottom:6px">• <strong>6:00 AM daily</strong> — Claude reads your Gmail, calendars, tasks, and health logs, then writes your brief and coaching here.</p>'+
     '<p style="margin-bottom:6px">• <strong>Sunday 5:00 PM</strong> — weekly review: project progress, what to adjust, plan for the week.</p>'+
     '<p style="margin-bottom:6px">• Scheduled runs need your Mac awake with the Claude app open; otherwise they run at next launch.</p>'+
+    '<p style="margin-bottom:6px">• <strong>Notes for planning</strong> (Today tab) feed the next brief and weekly review — commentary in, adjusted plan out.</p>'+
     '<p>• You can also just chat with Claude anytime — it manages this same database.</p></div>';
   m.appendChild(c4);
 }
