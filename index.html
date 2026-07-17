@@ -1119,7 +1119,15 @@ async function vCoach(m){
 
 // ------- modal & settings -------
 function openModal(html){ $('#modal').innerHTML=html; $('#modal-bg').classList.add('on'); }
-function closeModal(){ stopVoice(); $('#modal-bg').classList.remove('on'); }
+function closeModal(){
+  stopVoice();
+  if(livePC && liveLog.some(l=>l.who==='me')){
+    const t=liveTranscript(liveLog.slice()); liveLog=[];
+    sb.from('voice_captures').insert({transcript:t}).then(()=>{ toast('Captured'); });
+  }
+  liveCleanup();
+  $('#modal-bg').classList.remove('on');
+}
 
 // ------- voice capture -------
 let recogWanted=false, recogRef=null;
@@ -1128,7 +1136,7 @@ function stopVoice(){
   if(recogRef){ try{ recogRef.stop(); }catch(e){} recogRef=null; }
   const mb=document.getElementById('mic-big'); if(mb) mb.classList.remove('listening');
 }
-function voiceModal(){
+function basicVoiceModal(){
   openModal('<h3>Voice capture</h3><div class="small muted" style="margin-bottom:6px">Talk through tasks, projects, changes — completely free-form. Claude parses it into the right projects (checks every couple of hours, or ask it to process now).</div>'+
     '<button id="mic-big" aria-label="Start or stop listening"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/></svg></button>'+
     '<div id="mic-status" class="small muted" style="text-align:center; min-height:18px">Tap the mic to start</div>'+
@@ -1176,6 +1184,81 @@ function voiceModal(){
     closeModal(); toast('Captured — Claude will parse this into your projects');
     if(S.view==='today') render();
   };
+}
+// ------- live voice (OpenAI Realtime as capture interface; Claude does all processing) -------
+let livePC=null, liveMic=null, liveDC=null, liveLog=[], liveTimer=null, liveAudio=null;
+function liveCleanup(){
+  if(liveTimer){ clearTimeout(liveTimer); liveTimer=null; }
+  if(liveDC){ try{ liveDC.close(); }catch(e){} liveDC=null; }
+  if(livePC){ try{ livePC.close(); }catch(e){} livePC=null; }
+  if(liveMic){ liveMic.getTracks().forEach(t=>t.stop()); liveMic=null; }
+  if(liveAudio){ liveAudio.srcObject=null; liveAudio=null; }
+}
+function renderLiveLog(){
+  const el=document.getElementById('mic-live-log'); if(!el) return;
+  el.innerHTML=liveLog.map(l=>'<div style="margin-bottom:5px"><strong>'+(l.who==='me'?'You':'Capture')+':</strong> '+esc(l.text)+'</div>').join('');
+  el.scrollTop=el.scrollHeight;
+}
+function liveTranscript(entries){
+  return entries.map(l=>(l.who==='me'?'Me: ':'Capture assistant: ')+l.text).join('\n');
+}
+async function saveLive(){
+  const entries=liveLog.slice(); liveLog=[];
+  liveCleanup();
+  if(!entries.some(l=>l.who==='me')){ closeModal(); toast('Nothing captured'); return; }
+  await q(sb.from('voice_captures').insert({transcript:liveTranscript(entries)}),'Save capture');
+  closeModal(); toast('Captured — Claude will parse this into your projects');
+  if(S.view==='today') render();
+}
+async function startLive(){
+  const st=$('#mic-status'), micBtn=$('#mic-big');
+  try{
+    st.textContent='Connecting…';
+    const sess=await sb.auth.getSession();
+    const at=sess.data && sess.data.session ? sess.data.session.access_token : null;
+    if(!at) throw new Error('not signed in');
+    const r=await fetch(SB_URL+'/functions/v1/voice-session', {method:'POST', headers:{Authorization:'Bearer '+at}});
+    const js=await r.json();
+    if(!js.client_secret) throw new Error(js.error||'session mint failed');
+    liveMic=await navigator.mediaDevices.getUserMedia({audio:true});
+    livePC=new RTCPeerConnection();
+    liveAudio=new Audio(); liveAudio.autoplay=true;
+    livePC.ontrack=e=>{ liveAudio.srcObject=e.streams[0]; };
+    livePC.addTrack(liveMic.getTracks()[0], liveMic);
+    liveDC=livePC.createDataChannel('oai-events');
+    liveDC.onmessage=ev=>{
+      let d; try{ d=JSON.parse(ev.data); }catch(err){ return; }
+      if(d.type==='conversation.item.input_audio_transcription.completed' && d.transcript){ liveLog.push({who:'me', text:d.transcript.trim()}); renderLiveLog(); }
+      else if((d.type==='response.output_audio_transcript.done'||d.type==='response.audio_transcript.done') && d.transcript){ liveLog.push({who:'cap', text:d.transcript.trim()}); renderLiveLog(); }
+    };
+    const offer=await livePC.createOffer();
+    await livePC.setLocalDescription(offer);
+    const sr=await fetch('https://api.openai.com/v1/realtime/calls?model='+(js.model||'gpt-realtime-mini'), {method:'POST', headers:{Authorization:'Bearer '+js.client_secret, 'Content-Type':'application/sdp'}, body:offer.sdp});
+    if(!sr.ok) throw new Error('call setup failed ('+sr.status+')');
+    const answer=await sr.text();
+    await livePC.setRemoteDescription({type:'answer', sdp:answer});
+    micBtn.classList.add('listening');
+    st.textContent='Live — talk it through. Say you\'re done when finished, then tap End & save.';
+    $('#mic-save').style.display='block';
+    liveTimer=setTimeout(()=>{ toast('Session auto-ended at 10 min'); saveLive(); }, 600000);
+  }catch(e){
+    liveCleanup();
+    if(st) st.textContent='Live session unavailable ('+(e.message||e)+') — opening basic dictation.';
+    setTimeout(()=>basicVoiceModal(), 1100);
+  }
+}
+function voiceModal(){
+  liveLog=[]; liveCleanup();
+  openModal('<h3>Voice capture</h3>'+
+    '<div class="small muted" style="margin-bottom:6px">Live session — talk through tasks free-form; it acknowledges and asks quick clarifying questions. Everything goes to Claude for processing when you end.</div>'+
+    '<button id="mic-big" aria-label="Start live session"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/></svg></button>'+
+    '<div id="mic-status" class="small muted" style="text-align:center; min-height:18px">Tap the mic to go live</div>'+
+    '<div id="mic-live-log" class="small" style="max-height:180px; overflow-y:auto; margin-top:8px"></div>'+
+    '<button class="btn" id="mic-save" style="width:100%; margin-top:12px; display:none">End & save</button>'+
+    '<button class="small" id="mic-basic" style="color:var(--accent); display:block; margin:10px auto 0">Use basic dictation instead</button>');
+  $('#mic-big').onclick=()=>{ if(!livePC) startLive(); };
+  $('#mic-save').onclick=saveLive;
+  $('#mic-basic').onclick=()=>{ liveCleanup(); liveLog=[]; basicVoiceModal(); };
 }
 $('#fab').onclick=voiceModal;
 $('#modal-bg').addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
