@@ -789,7 +789,12 @@ async function vHealth(m){
   m.appendChild(c3);
 
   const c4=document.createElement('div'); c4.className='card';
-  c4.innerHTML='<h2>Devices</h2><div class="small">Oura ring & Apple Watch import isn\'t connected yet. To connect, tell Claude: <em>"connect my Oura ring"</em> (needs a free Oura personal access token) or <em>"set up Apple Health import"</em> (via the Health Auto Export app). Self-reported logs work today.</div>';
+  const oura=S.profile.oura;
+  c4.innerHTML='<h2>Devices</h2><div class="small">'+
+    (oura && oura.token
+      ? '<span class="chip accent">Oura connected</span> Sleep, readiness, HRV, resting HR & steps sync automatically twice a day'+(oura.last_sync?' — last sync '+new Date(oura.last_sync).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):'')+'.'
+      : 'Oura isn\'t connected yet — tell Claude: <em>"connect my Oura ring"</em> (needs a free personal access token).')+
+    ' Apple Watch: tell Claude <em>"set up Apple Health import"</em>. Self-reported logs always work.</div>';
   m.appendChild(c4);
 }
 function healthForm(kind){
