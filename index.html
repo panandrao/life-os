@@ -799,9 +799,12 @@ async function vHealth(m){
     else byDay[l.log_date][l.metric]=Number(l.value);
   }
   const allDays=Object.keys(byDay).sort();
-  const series=(metric,n)=>{ const days=allDays.slice(-n); return days.map(d=>byDay[d][metric]).filter(v=>v!=null); };
+  // Cumulative metrics accrue over the day, so today's value is partial — exclude it from tiles/averages.
+  const CUMULATIVE=new Set(['steps','active_cal','activity_score','workout','exercise_min']);
+  const daysFor=metric=> CUMULATIVE.has(metric)? allDays.filter(d=>d<today) : allDays;
+  const series=(metric,n)=>{ const ds=daysFor(metric).slice(-n); return ds.map(d=>byDay[d][metric]).filter(v=>v!=null); };
   const avg=arr=>arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : null;
-  const latest=metric=>{ for(let i=allDays.length-1;i>=0;i--){ const v=byDay[allDays[i]][metric]; if(v!=null) return v; } return null; };
+  const latest=metric=>{ const ds=daysFor(metric); for(let i=ds.length-1;i>=0;i--){ const v=byDay[ds[i]][metric]; if(v!=null) return v; } return null; };
   const hasOura = logs.some(l=>l.source==='oura');
   const fmtN=(v,dec)=> v==null?'—' : (dec? (Math.round(v*10)/10).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}) : Math.round(v).toLocaleString());
 
