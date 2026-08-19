@@ -388,10 +388,28 @@ function md(src){
   return out.join('');
 }
 
+// Transient auth/clock errors (e.g. "JWT issued at future" when Supabase's auth and DB clocks differ by a second)
+// resolve on their own within seconds — retry a few times before surfacing anything.
+const TRANSIENT_RE=/issued at future|jwt expired|PGRST301|PGRST303|Failed to fetch|NetworkError|Load failed|timeout/i;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function isTransient(err){ return TRANSIENT_RE.test(String((err&&(err.message||err.code))||'')); }
 async function q(promise, label){
   const {data, error} = await promise;
   if(error){ console.error(label, error); toast((label||'Request') + ' failed: ' + error.message); throw error; }
   return data;
+}
+// qf(() => sb.from(...).select(...)) — retryable variant for reads: re-issues the request on transient failures.
+async function qf(factory, label){
+  let lastErr=null;
+  for(let attempt=0; attempt<4; attempt++){
+    const {data, error} = await factory();
+    if(!error) return data;
+    lastErr=error;
+    if(!isTransient(error) || attempt===3) break;
+    await sleep(900*(attempt+1));
+    if(/issued at future|jwt|PGRST30/i.test(String(error.message||error.code||''))){ try{ await sb.auth.refreshSession(); }catch(e){} }
+  }
+  console.error(label, lastErr); toast((label||'Request') + ' failed: ' + lastErr.message); throw lastErr;
 }
 
 // ------- state -------
@@ -399,10 +417,10 @@ const S = { areas:[], projects:[], tasksOpen:[], profile:{}, view:'today', projD
 
 async function loadCore(){
   const [areas, projects, tasks, prof] = await Promise.all([
-    q(sb.from('life_areas').select('*').order('sort_order'), 'Areas'),
-    q(sb.from('projects').select('*').order('sort_order'), 'Projects'),
-    q(sb.from('tasks').select('*').in('status',['todo','doing']).order('due_date',{ascending:true, nullsFirst:false}), 'Tasks'),
-    q(sb.from('user_profile').select('*'), 'Profile'),
+    qf(()=>sb.from('life_areas').select('*').order('sort_order'), 'Areas'),
+    qf(()=>sb.from('projects').select('*').order('sort_order'), 'Projects'),
+    qf(()=>sb.from('tasks').select('*').in('status',['todo','doing']).order('due_date',{ascending:true, nullsFirst:false}), 'Tasks'),
+    qf(()=>sb.from('user_profile').select('*'), 'Profile'),
   ]);
   S.areas=areas; S.projects=projects; S.tasksOpen=tasks;
   S.profile = Object.fromEntries(prof.map(r=>[r.key, r.value]));
@@ -546,9 +564,9 @@ async function render(){
 // TODAY
 async function vToday(m){
   const results0 = await Promise.all([
-    q(sb.from('daily_briefs').select('*').order('brief_date',{ascending:false}).limit(1),'Brief'),
-    q(sb.from('planning_notes').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(5),'Notes'),
-    q(sb.from('voice_captures').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(3),'Captures'),
+    qf(()=>sb.from('daily_briefs').select('*').order('brief_date',{ascending:false}).limit(1), 'Brief'),
+    qf(()=>sb.from('planning_notes').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(5), 'Notes'),
+    qf(()=>sb.from('voice_captures').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(3), 'Captures'),
     q(sb.from('tasks').select('id').eq('status','done').gte('completed_at', new Date(Date.now()-6*864e5).toISOString()),'Done count'),
   ]);
   const briefs=results0[0], pnotes=results0[1], vcaps=results0[2], doneWeek=results0[3].length;
@@ -696,8 +714,8 @@ function newProjectModal(kind){
 async function vProject(m, pid){
   const p=projById(pid); const a=areaById(p.area_id);
   const [allTasks, notes] = await Promise.all([
-    q(sb.from('tasks').select('*').eq('project_id',pid).order('created_at',{ascending:false}).limit(60),'Tasks'),
-    q(sb.from('coach_notes').select('*').eq('project_id',pid).neq('status','dismissed').order('created_at',{ascending:false}).limit(5),'Notes'),
+    qf(()=>sb.from('tasks').select('*').eq('project_id',pid).order('created_at',{ascending:false}).limit(60), 'Tasks'),
+    qf(()=>sb.from('coach_notes').select('*').eq('project_id',pid).neq('status','dismissed').order('created_at',{ascending:false}).limit(5), 'Notes'),
   ]);
   m.innerHTML='';
   const head=document.createElement('div'); head.className='card';
@@ -749,7 +767,7 @@ const ONB_QS = [
   ['coaching','How should your coach talk to you — direct, encouraging, analytical? Anything else Claude should know about how you work best?'],
 ];
 async function vGoals(m){
-  const goals = await q(sb.from('goals').select('*').neq('status','dropped').order('created_at'),'Goals');
+  const goals = await qf(()=>sb.from('goals').select('*').neq('status','dropped').order('created_at'), 'Goals');
   m.innerHTML='';
   const onboarded = S.profile.system_status?.onboarded || S.profile.onboarding_answers;
   const ob=document.createElement('div'); ob.className='card';
@@ -863,8 +881,8 @@ async function vHealth(m){
   const today=todayStr();
   const since=new Date(Date.now()-34*864e5).toLocaleDateString('en-CA');
   const [logs, foods] = await Promise.all([
-    q(sb.from('health_logs').select('*').gte('log_date',since).order('log_date',{ascending:true}),'Health'),
-    q(sb.from('food_logs').select('*').gte('eaten_at', today+'T00:00:00').order('eaten_at'),'Food'),
+    qf(()=>sb.from('health_logs').select('*').gte('log_date',since).order('log_date',{ascending:true}), 'Health'),
+    qf(()=>sb.from('food_logs').select('*').gte('eaten_at', today+'T00:00:00').order('eaten_at'), 'Food'),
   ]);
   m.innerHTML='';
 
@@ -1020,8 +1038,8 @@ const PROMPTS=[
 ];
 async function vReflect(m){
   const results = await Promise.all([
-    q(sb.from('reflections').select('*').order('created_at',{ascending:false}).limit(10),'Reflections'),
-    q(sb.from('gratitude_logs').select('*').order('entry_date',{ascending:false}).limit(40),'Gratitude'),
+    qf(()=>sb.from('reflections').select('*').order('created_at',{ascending:false}).limit(10), 'Reflections'),
+    qf(()=>sb.from('gratitude_logs').select('*').order('entry_date',{ascending:false}).limit(40), 'Gratitude'),
   ]);
   const entries=results[0], glogs=results[1];
   m.innerHTML='';
@@ -1093,9 +1111,9 @@ async function vReflect(m){
 // COACH
 async function vCoach(m){
   const [notes, inbox, wos] = await Promise.all([
-    q(sb.from('coach_notes').select('*').neq('status','dismissed').order('created_at',{ascending:false}).limit(20),'Coach notes'),
-    q(sb.from('claude_inbox').select('*').order('created_at',{ascending:false}).limit(10),'Inbox'),
-    q(sb.from('work_orders').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(8),'Work orders'),
+    qf(()=>sb.from('coach_notes').select('*').neq('status','dismissed').order('created_at',{ascending:false}).limit(20), 'Coach notes'),
+    qf(()=>sb.from('claude_inbox').select('*').order('created_at',{ascending:false}).limit(10), 'Inbox'),
+    qf(()=>sb.from('work_orders').select('*').neq('status','archived').order('created_at',{ascending:false}).limit(8), 'Work orders'),
   ]);
   m.innerHTML='';
 
@@ -1389,7 +1407,13 @@ async function start(){
   $('#login').style.display='none';
   $('#shell').classList.add('on');
   setHeader(); buildNav();
-  await loadCore();
+  try{
+    await loadCore();
+  }catch(e){
+    $('#main').innerHTML='<div class="card"><h2>Couldn\'t load</h2><div class="small muted" style="margin-bottom:10px">The connection hiccupped while signing you in. This usually clears in a moment.</div><button class="btn" id="boot-retry">Retry</button></div>';
+    $('#boot-retry').onclick=()=>location.reload();
+    return;
+  }
   const h=location.hash.replace('#','');
   setTab(TABS.some(t=>t[0]===h)?h:'today');
 }
