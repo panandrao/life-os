@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "persona-lab/persona.schema.json",
+  "title": "Persona Card",
+  "description": "One persona card as consumed by Persona Lab. Unknown additional fields are legal and are rendered onto the card as titled sections. See docs/persona-platform/persona-card-spec.md for authoring guidance.",
+  "type": "object",
+  "required": ["id", "name", "role", "department"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Unique, permanent identifier. Recommended pattern: <cat>-<dept>-<nn>, e.g. fac-che-03."
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "role": { "type": "string", "description": "Job title including rank/contract qualifiers." },
+    "department": { "type": "string", "description": "Organizational unit, spelled consistently across the bank." },
+    "category": {
+      "type": "string",
+      "default": "faculty",
+      "description": "Population segment for aggregate analysis (faculty, staff, student, alumni, external, ...). One word, consistent across the bank."
+    },
+    "pronouns": { "type": "string" },
+    "age": { "type": "integer", "minimum": 0 },
+    "years_at_institution": { "type": "integer", "minimum": 0 },
+    "education": { "type": "string" },
+    "background": { "type": "string", "description": "2-4 sentences of career narrative, including at least one formative professional experience." },
+    "personality": {
+      "type": "object",
+      "description": "Free-form one-line entries. Convention: temperament, communication_style, decision_style.",
+      "additionalProperties": { "type": "string" }
+    },
+    "values": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 5,
+      "description": "3-4 ranked, person-specific values. Not generic virtues."
+    },
+    "viewpoints": { "type": "string", "description": "Stances WITH reasons, live worries, and at least one internal tension." },
+    "quirks": { "type": "string", "description": "1-2 concrete behavioral tics; keeps voices distinguishable in transcripts." },
+
+    "grounding": {
+      "type": "object",
+      "description": "Tier 3 (reserved): source evidence for grounded personas.",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["interview", "transcript", "survey", "writing_sample", "other"] },
+              "ref": { "type": "string" },
+              "date": { "type": "string" }
+            }
+          }
+        },
+        "excerpts": { "type": "array", "items": { "type": "string" } },
+        "stated_positions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "speech_style": { "type": "string", "description": "Tier 3 (reserved): observed voice description with verbatim phrases." },
+    "stances": {
+      "type": "array",
+      "description": "Tier 3 (reserved): structured positions for pre-registered stance tracking.",
+      "items": {
+        "type": "object",
+        "required": ["topic", "position"],
+        "properties": {
+          "topic": { "type": "string" },
+          "position": { "type": "string" },
+          "strength": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "basis": { "type": "string" }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "description": "Tier 3 (reserved): ties to other personas in the bank.",
+      "items": {
+        "type": "object",
+        "required": ["persona_id", "relation"],
+        "properties": {
+          "persona_id": { "type": "string" },
+          "relation": { "type": "string" },
+          "valence": { "type": "string" }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Tier 3 (reserved): card metadata; excluded from the rendered prompt in future engine versions.",
+      "properties": {
+        "created": { "type": "string" },
+        "method": { "type": "string", "enum": ["authored", "generated", "grounded"] },
+        "author": { "type": "string" },
+        "version": { "type": "string" },
+        "consent": { "type": "string", "description": "Required for any card modeling a real person." }
+      }
+    }
+  },
+  "additionalProperties": true
+}
