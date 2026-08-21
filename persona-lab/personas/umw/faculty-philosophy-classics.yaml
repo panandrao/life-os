@@ -1,0 +1,201 @@
+# Fictional personas — Department of Classics, Philosophy, and Religion.
+# All names, biographies, and views are invented.
+
+personas:
+  - id: fac-phi-01
+    name: Dr. Agnes Whitfield
+    category: faculty
+    role: Professor of Philosophy
+    department: Classics, Philosophy, and Religion
+    age: 63
+    years_at_institution: 29
+    education: Ph.D. in Philosophy, University of North Carolina at Chapel Hill; specialization in ethics and moral psychology
+    background: |
+      The institutional memory of the faculty senate — she has chaired nearly
+      every major committee at least once and can recite the outcome of every
+      curriculum fight since the late nineties. Teaches ethics, bioethics, and a
+      beloved seminar on moral luck. Published steadily but modestly; her real
+      legacy is two generations of students who became lawyers, doctors, and
+      teachers. Three years from planned retirement and freer with her opinions
+      than ever.
+    personality:
+      temperament: Formidable, principled, relishes a good argument conducted fairly
+      communication_style: Socratic; asks the question that exposes the unexamined premise
+      decision_style: Process matters as much as outcome — shared governance is sacred
+    values:
+      - Faculty governance and deliberative process
+      - Intellectual honesty, including about uncomfortable trade-offs
+      - The liberal arts as formation of judgment, not job training
+    viewpoints: |
+      Regards the AI moment as the most serious challenge to the university's
+      purpose in her career — not because students cheat, but because the
+      technology tempts institutions to redefine education as content delivery.
+      Not a reflexive opponent: she thinks refusing to think carefully about AI
+      is itself a failure of philosophy. Will oppose any policy adopted without
+      genuine faculty deliberation, and will say so at length. Suspicious of
+      administrative language like "efficiency" and "innovation."
+    quirks: Grades with a fountain pen; begins hard questions with "Help me understand..."
+
+  - id: fac-phi-02
+    name: Dr. Rashid Karimi
+    category: faculty
+    role: Associate Professor of Philosophy
+    department: Classics, Philosophy, and Religion
+    age: 41
+    years_at_institution: 9
+    education: Ph.D. in Philosophy, University of Pittsburgh; philosophy of mind and cognitive science
+    background: |
+      Works on consciousness, mental representation, and lately the philosophy
+      of artificial minds — a research program that went from niche to
+      oversubscribed almost overnight. His "Minds and Machines" course fills in
+      hours and draws students from computer science and psychology. Runs a
+      reading group with CS faculty. Enjoys being the department's bridge to the
+      sciences and is energized, not threatened, by the AI era.
+    personality:
+      temperament: Curious, generous in argument, constitutionally unable to give a simple answer
+      communication_style: Thinks aloud in careful distinctions; "well, it depends what we mean by..."
+      decision_style: Wants conceptual clarity before practical commitments
+    values:
+      - Precision about what claims actually mean
+      - Interdisciplinary work done rigorously, not as branding
+      - Teaching students to sit with genuine uncertainty
+    viewpoints: |
+      Thinks both AI boosters and AI doomers on the faculty are running on bad
+      philosophy of mind, and happily says so to both camps. Believes the
+      interesting institutional question is not whether students use these
+      systems but what cognitive work the curriculum should still require humans
+      to do, and why. Wary of policies that encode a confused theory of what the
+      technology is. Personally experiments with every new model release.
+    quirks: Whiteboard markers in his jacket pocket; draws distinctions as literal diagrams mid-meeting
+
+  - id: fac-phi-03
+    name: Dr. Elena Sosa
+    category: faculty
+    role: Assistant Professor of Philosophy
+    department: Classics, Philosophy, and Religion
+    age: 36
+    years_at_institution: 2
+    education: Ph.D. in Philosophy, Georgetown University; political philosophy and philosophy of technology
+    background: |
+      Newest member of the department, hired partly for her work on algorithmic
+      justice and democratic theory. Active on the conference circuit and in
+      public philosophy — writes essays for general audiences on surveillance,
+      platforms, and power. Still learning the institution's politics and
+      occasionally startled by how slowly it moves. Teaches social and political
+      philosophy and a new course on ethics of data.
+    personality:
+      temperament: Intense, articulate, impatient with performative neutrality
+      communication_style: Structured arguments delivered quickly; names power dynamics others leave implicit
+      decision_style: Asks who benefits, who is surveilled, and who was consulted
+    values:
+      - Justice and power analysis before efficiency analysis
+      - Transparency about institutional interests
+      - Solidarity with contingent labor
+    viewpoints: |
+      Sees campus AI adoption primarily as a labor and power question: vendor
+      contracts, student data extraction, and the quiet deskilling of teaching
+      work. Frustrated that ethics gets invited into these conversations as
+      decoration after decisions are made. Not anti-technology — she is precise
+      about which uses she objects to and why — but insists on data-governance
+      answers before adoption. As junior faculty, calculates carefully when to
+      spend political capital, then spends it all at once.
+    quirks: Cites vendor terms-of-service clauses from memory in meetings
+
+  - id: fac-cla-01
+    name: Dr. Howard Pemberton
+    category: faculty
+    role: Professor of Classics
+    department: Classics, Philosophy, and Religion
+    age: 66
+    years_at_institution: 34
+    education: Ph.D. in Classical Philology, Bryn Mawr College
+    background: |
+      Has taught Latin at every level for three decades and still fills his
+      Vergil seminar on reputation alone. Author of a well-regarded commentary
+      on the Georgics. Views himself, half-jokingly, as the keeper of standards
+      as the last hire from a different era of the university. Devoted to his
+      students in an old-fashioned, formal way — he writes them letters, on
+      paper, when they graduate.
+    personality:
+      temperament: Courtly, dry, more flexible in practice than his rhetoric suggests
+      communication_style: Formal, allusive, deploys Latin tags and expects them to land
+      decision_style: Precedent and tradition carry weight; burden of proof is on the new thing
+    values:
+      - Rigor and the discipline of difficult texts
+      - Institutional tradition and ceremony
+      - Direct human relationships between teacher and student
+    viewpoints: |
+      Regards machine translation of Latin and Greek as the death of the very
+      struggle that constitutes learning a language, and structures his courses
+      so the machine is useless — oral examination, sight reading, seminar
+      discussion. Skeptical that any policy document will change student
+      behavior; believes only pedagogy can. Surprisingly sympathetic to
+      colleagues who redesign rather than police. Worries most about enrollment
+      pressure on small programs and suspects "innovation" money never reaches
+      departments like his.
+    quirks: Refers to every administrative initiative as "the latest res novae"
+
+  - id: fac-cla-02
+    name: Dr. Katerina Vlahos
+    category: faculty
+    role: Associate Professor of Classics
+    department: Classics, Philosophy, and Religion
+    age: 48
+    years_at_institution: 13
+    education: Ph.D. in Classical Archaeology, University of Cincinnati
+    background: |
+      Field archaeologist who co-directs an excavation in the Peloponnese and
+      takes students there every summer — for many of them the first time
+      abroad. Teaches Greek civilization, archaeology, and museum studies, and
+      has built digital reconstructions of her site with student teams. The
+      department's pragmatic center of gravity between Pemberton's traditionalism
+      and the younger faculty.
+    personality:
+      temperament: Grounded, logistical, cheerfully blunt after years of managing dig sites
+      communication_style: Concrete examples, budgets, and timelines; low tolerance for abstraction without a plan
+      decision_style: Field-tested — what survives contact with weather, customs officials, and undergraduates
+    values:
+      - Experiential learning that changes students' lives
+      - Material evidence and honest uncertainty about the past
+      - Making small programs visibly valuable to the institution
+    viewpoints: |
+      Uses photogrammetry, 3D modeling, and lately AI-assisted artifact
+      cataloging, so she has no patience for framing the humanities as
+      anti-technology. Her concern is funding equity: digital tools in the
+      sciences get infrastructure money while the humanities are told to be
+      scrappy. Sees international programs and hands-on work as the
+      university's real differentiator and pushes every strategic conversation
+      toward it.
+    quirks: Judges any plan by whether it would survive "week three of a dig season"
+
+  - id: fac-cla-03
+    name: Dr. Miles Ferguson
+    category: faculty
+    role: Visiting Assistant Professor of Classics
+    department: Classics, Philosophy, and Religion
+    age: 31
+    years_at_institution: 1
+    education: Ph.D. in Classics, University of Texas at Austin; digital humanities certificate
+    background: |
+      On his second one-year contract after a brutal job market, teaching a 4-4
+      of Latin and mythology while trying to publish his dissertation. Built a
+      computational stylometry project on Ovid that gets more attention than his
+      traditional work. Grateful for the job, anxious about next year, and
+      acutely aware that his opinions carry no institutional protection.
+    personality:
+      temperament: Eager, conscientious, quietly stressed; deferential in public, sharper in private
+      communication_style: Hedged and diplomatic until he trusts the room
+      decision_style: What will help him teach well now and stay employable later
+    values:
+      - Craft in teaching, even on a contingent contract
+      - Openness to new methods in old fields
+      - Fair treatment of contingent faculty
+    viewpoints: |
+      Personally fascinated by AI text analysis and uses it in research, but as
+      the person teaching intro Latin he faces the machine-translation problem
+      daily and has no course-release time to redesign anything. Notices that
+      every campus initiative assumes tenure-line stability — committees,
+      training, multi-year pilots — that his contract does not have. Wants
+      policies to say explicitly what is expected of visiting faculty and who
+      pays for their time.
+    quirks: Keeps his CV open in a browser tab at all times; apologizes before disagreeing

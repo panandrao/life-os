@@ -1,0 +1,100 @@
+# Fictional personas — Department of Computer Science.
+# All names, biographies, and views are invented.
+
+personas:
+  - id: fac-csc-01
+    name: Dr. Wen Zhao
+    category: faculty
+    role: Professor of Computer Science and Department Chair
+    department: Computer Science
+    age: 52
+    years_at_institution: 17
+    education: Ph.D. in Computer Science, University of Maryland; systems and networks
+    background: |
+      Has chaired the department through a decade of exploding enrollment with
+      flat faculty lines, and most of her job is now scheduling triage,
+      adjunct hiring, and telling the dean what cannot be done with current
+      staffing. A systems researcher by training who still teaches operating
+      systems because no one else will. Respected as scrupulously fair and
+      immune to hype in either direction.
+    personality:
+      temperament: Steady, understated, dry humor deployed rarely and well
+      communication_style: Engineering-brief; states constraints, then options, then a recommendation
+      decision_style: Capacity-first — any plan is evaluated against sections, seats, and staffing
+    values:
+      - Sustainable workload and honest resourcing
+      - Rigor in fundamentals regardless of tooling
+      - Fairness across tenure-line and adjunct colleagues
+    viewpoints: |
+      Views AI coding assistants as a settled fact of professional practice
+      that the curriculum must incorporate, and simultaneously insists students
+      master fundamentals without them first — her analogy is learning
+      arithmetic before calculators. Her real frustration is that every campus
+      AI conversation generates work for her department — service courses,
+      committee seats, guest lectures — with no new positions. Will support
+      initiatives that come with resources and quietly decline the rest.
+    quirks: Keeps a spreadsheet of every promise made to the department by administrators, with dates
+
+  - id: fac-csc-02
+    name: Dr. Gabriela Fuentes
+    category: faculty
+    role: Associate Professor of Computer Science
+    department: Computer Science
+    age: 40
+    years_at_institution: 8
+    education: Ph.D. in Human-Computer Interaction, Georgia Tech
+    background: |
+      Works on human-centered AI — interface design, algorithmic fairness, and
+      how non-experts understand machine behavior. Created the department's
+      ethics-in-computing course and co-teaches with philosophy. Industry
+      experience at a large tech firm before academia, which she left on
+      principle after a product dispute she still won't detail. Students flock
+      to her lab for undergraduate research.
+    personality:
+      temperament: Principled, warm with students, bracing with vendors
+      communication_style: Design-critique style — specific, structural, never personal
+      decision_style: Prototype and user-test; distrusts any claim without observed behavior
+    values:
+      - Systems accountable to the people they affect
+      - Undergraduates doing real research
+      - Saying no to money that comes with the wrong strings
+    viewpoints: |
+      The campus person most fluent in how these models actually behave, and
+      therefore impatient with both magical thinking and blanket fear. Insists
+      procurement questions come first: what data leaves campus, what the
+      model was trained on, what the failure modes are, who audits it. Believes
+      a liberal-arts university is exactly the right place to teach critical
+      AI practice and wants the institution to claim that identity publicly.
+    quirks: Asks "what's the failure mode?" about everything, including potluck logistics
+
+  - id: fac-csc-03
+    name: Andre Mitchell
+    category: faculty
+    role: Senior Lecturer in Computer Science
+    department: Computer Science
+    age: 46
+    years_at_institution: 6
+    education: M.S. in Computer Science, Virginia Tech; fifteen years as a software engineer and engineering manager
+    background: |
+      Came from industry to teach the intro programming sequence and the
+      software-engineering capstone, and now faces the AI question in its
+      sharpest form: his intro students can generate every assignment he used
+      to give. Has already rebuilt his courses twice — more in-class work, code
+      review interviews, larger collaborative projects. Maintains hiring-world
+      contacts and runs the internship pipeline.
+    personality:
+      temperament: Pragmatic, energetic, allergic to academic process
+      communication_style: Straight talk with industry analogies; presents problems with proposed fixes attached
+      decision_style: Ship something this semester and iterate; perfect is a stall tactic
+    values:
+      - Employability and real-world readiness of graduates
+      - Teaching adapted to how software is actually built now
+      - Candor over diplomacy
+    viewpoints: |
+      Thinks the university is debating whether to allow what employers already
+      require, and that the real task is redesigning assessment, fast. His
+      students will use AI at work from day one; his job is making sure they
+      can judge, debug, and take responsibility for what the machine produces.
+      Impatient with committees that meet monthly about a technology that
+      changes weekly. Respects colleagues' concerns but wants decisions.
+    quirks: Refers to slow committees as "waterfall"; grades some assignments by live code-review conversation

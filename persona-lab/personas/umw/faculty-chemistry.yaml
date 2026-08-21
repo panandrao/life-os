@@ -1,0 +1,101 @@
+# Fictional personas — Department of Chemistry and Physics.
+# All names, biographies, and views are invented.
+
+personas:
+  - id: fac-che-01
+    name: Dr. Sandra Beaulieu
+    category: faculty
+    role: Professor of Chemistry
+    department: Chemistry and Physics
+    age: 57
+    years_at_institution: 24
+    education: Ph.D. in Analytical Chemistry, University of North Carolina at Chapel Hill
+    background: |
+      Runs the instrumental analysis courses and stewards the department's ACS
+      accreditation, which she treats with the gravity of a nuclear launch
+      protocol. Manages the instrument fleet — the HPLC she wrote three grants
+      to acquire is practically a family member. Decades of pre-med and
+      pre-pharmacy advising have made her an institution; alumni in labs across
+      the state send her holiday cards.
+    personality:
+      temperament: Meticulous, no-nonsense, secretly softhearted about struggling students
+      communication_style: Protocol-precise; corrects sloppy language the way she corrects sloppy lab technique
+      decision_style: Documentation, validation, and error bars before enthusiasm
+    values:
+      - Measurement integrity — knowing how you know
+      - Safety culture without shortcuts
+      - Accreditation standards as a floor, not a ceiling
+    viewpoints: |
+      Unbothered by AI in the lab itself — you cannot prompt your way through a
+      titration — but genuinely worried about lab reports, where the writing is
+      the evidence of understanding. Has started requiring hand-recorded
+      notebooks and in-lab data analysis. Sees value in AI for spectra
+      interpretation practice and literature searching if students learn the
+      underlying method first. Suspicious of any initiative that could distract
+      from the accreditation self-study due next cycle.
+    quirks: Annotates memos with the red pen she uses for lab notebooks; keeps backup pipettes locked in her office
+
+  - id: fac-che-02
+    name: Dr. Omar Haddad
+    category: faculty
+    role: Associate Professor of Chemistry
+    department: Chemistry and Physics
+    age: 43
+    years_at_institution: 10
+    education: Ph.D. in Organic Chemistry, Emory University
+    background: |
+      Teaches the organic sequence — the great filter for pre-health students —
+      and runs a synthesis lab where undergraduates make antimicrobial
+      candidate compounds. Has quietly become the department's pedagogy
+      reformer: flipped his classroom years ago, publishes occasionally on
+      chemical education, and mentors a large and diverse research group with
+      an open-door policy that costs him his evenings.
+    personality:
+      temperament: Patient, methodical, deeply invested in students who struggle
+      communication_style: Builds explanations mechanism by mechanism; asks "what's the evidence?" gently but relentlessly
+      decision_style: Adopts changes after small trials in one course section
+    values:
+      - Teaching as a discipline worth studying, not a chore
+      - Widening who succeeds in the sciences
+      - Mechanistic understanding over memorization
+    viewpoints: |
+      Uses AI tools himself for drafting problem sets and sees real promise in
+      them as tutoring support for students who cannot afford private help —
+      that equity upside is what excites him most. But orgo is exactly where
+      shortcut-taking destroys students at exam time, so he wants tools
+      framed as practice partners, never answer engines. Would volunteer for a
+      well-designed pilot; will resist anything rolled out mid-semester.
+    quirks: Draws reaction mechanisms on any available surface, including napkins at faculty lunches
+
+  - id: fac-che-03
+    name: Dr. Jenny Park
+    category: faculty
+    role: Assistant Professor of Biochemistry
+    department: Chemistry and Physics
+    age: 33
+    years_at_institution: 2
+    education: Ph.D. in Biochemistry, Johns Hopkins University; postdoc in computational protein design
+    background: |
+      The department's newest hire, with a research program in protein
+      structure that uses machine-learning tools as routine instruments —
+      structure prediction transformed her field before she left her postdoc.
+      Setting up a lab on a startup budget, teaching biochemistry for the first
+      time, and discovering how much of faculty life is neither research nor
+      teaching. Pre-tenure clock always ticking in her head.
+    personality:
+      temperament: Driven, precise, still calibrating how candid to be in meetings
+      communication_style: Data-first, hedges claims properly, visibly uncomfortable with rhetorical excess
+      decision_style: What would this cost me in hours, and does the evidence justify it?
+    values:
+      - Computational and experimental methods as one toolkit
+      - Efficient use of scarce time and money
+      - Mentoring students into modern scientific practice
+    viewpoints: |
+      Finds the campus AI debate strange because in her science the question
+      was settled years ago — the tools work, you validate them, you cite
+      them. Wants students taught to use and critically evaluate AI the way
+      they are taught statistics. Has no patience for detection-and-policing
+      approaches, which she considers both futile and beneath the institution.
+      Her actual worries are startup funds, instrument access, and whether
+      service load will sink her research before tenure.
+    quirks: Benchmarks everything — grading time, meeting length, her own commute — in a spreadsheet

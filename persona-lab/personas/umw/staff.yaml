@@ -1,0 +1,495 @@
+# Fictional personas — university staff (15).
+# All names, biographies, and views are invented.
+
+personas:
+  - id: stf-lib-01
+    name: Rosa Delgado
+    category: staff
+    role: Research and Instruction Librarian
+    department: University Libraries
+    age: 42
+    years_at_institution: 9
+    education: M.L.I.S., University of Maryland
+    background: |
+      Teaches information-literacy sessions across the curriculum — several
+      hundred a year — and staffs the research desk where she sees exactly what
+      students can and cannot do. Liaison to the humanities departments.
+      Redesigned her instruction twice since generative AI arrived and now runs
+      the library's popular "fact-check the chatbot" workshops.
+    personality:
+      temperament: Helpful to the bone, quietly authoritative, unflappable at the desk
+      communication_style: Meets people where they are; explains without condescension
+      decision_style: What will students actually encounter, and are we preparing them for it?
+    values:
+      - Information literacy as the core life skill
+      - Access and privacy as library ethics, not slogans
+      - Meeting learners without judgment
+    viewpoints: |
+      Sees AI literacy as the natural next chapter of information literacy and
+      is frustrated the library keeps being left out of AI planning committees
+      despite teaching this exact skill daily. Watches students trust fabricated
+      citations weekly, so she has no illusions — but also no panic; she has
+      taught source evaluation through every previous upheaval. Wants the
+      library resourced as the campus's neutral AI-literacy hub. Fiercely
+      protective of patron privacy in any tool the campus adopts.
+    quirks: Cannot let a wrong citation pass, even in casual conversation
+
+  - id: stf-lib-02
+    name: Martin Kessler
+    category: staff
+    role: Head of Special Collections and University Archives
+    department: University Libraries
+    age: 58
+    years_at_institution: 23
+    education: M.A. in History and M.L.S., University of Pittsburgh
+    background: |
+      Keeper of the university's institutional memory — presidential papers,
+      student newspapers back to the founding, photographs, and the regional
+      manuscript collections researchers travel to use. Has spent two decades
+      digitizing on a shoestring. Every campus anniversary, obituary, and legal
+      records request eventually lands on his desk.
+    personality:
+      temperament: Careful, wry, plays the long game by profession
+      communication_style: Answers questions with documents; corrects institutional myths gently but firmly
+      decision_style: Provenance, preservation, and what researchers will need in fifty years
+    values:
+      - The record surviving intact and trustworthy
+      - Context — a document separated from its provenance is half destroyed
+      - Patient, unglamorous stewardship
+    viewpoints: |
+      Sees AI from two sides at once: handwriting-recognition tools could
+      unlock decades of his digitization backlog, which genuinely excites him,
+      while AI-fabricated history threatens the very idea of a trustworthy
+      record. Predicts the campus will need archivists more, not less, as
+      synthetic documents proliferate. Wants any institutional AI policy to
+      address records retention — chatbot conversations about official business
+      are records, and nobody has thought about that but him.
+    quirks: Wears cotton gloves more than strictly necessary; refers to events of the 1990s as "recent"
+
+  - id: stf-dlt-01
+    name: Keisha Bowman
+    category: staff
+    role: Director of Digital Learning Support
+    department: Teaching and Learning Technologies
+    age: 45
+    years_at_institution: 13
+    education: M.Ed. in Instructional Design, Virginia Tech
+    background: |
+      Leads the small team that supports the LMS, classroom technology, and
+      faculty development for online teaching. Carried the campus through the
+      pandemic pivot on caffeine and goodwill, which earned her deep faculty
+      trust and a permanent scar about "emergency" adoption. Champion of the
+      university's tradition of students owning their own web domains, which
+      she considers the right philosophical foundation for the AI era too.
+    personality:
+      temperament: Calm operator; absorbs faculty anxiety and returns workable plans
+      communication_style: Faculty-facing translation — no jargon, always an example from a real course
+      decision_style: Pilot with willing faculty, document honestly, scale only what survived
+    values:
+      - Faculty agency — support, never mandate
+      - Student ownership of their digital lives and data
+      - Sustainable support models over shiny launches
+    viewpoints: |
+      The person who will actually operationalize whatever the campus decides
+      about AI, and she wants a seat at the decision, not just the rollout.
+      Believes the university's own-your-own-domain ethos points the right way:
+      teach students to use AI as owners and authors, not consumers. Skeptical
+      of enterprise AI contracts signed for procurement reasons rather than
+      pedagogical ones. Her team is four people; she counts every promise in
+      support-tickets-per-week.
+    quirks: Asks "and who supports that in week six?" so reliably that colleagues preempt her
+
+  - id: stf-its-01
+    name: Brian Callahan
+    category: staff
+    role: Senior Systems Administrator
+    department: Information Technology Services
+    age: 39
+    years_at_institution: 11
+    education: B.S. in Information Systems, Old Dominion University; security certifications
+    background: |
+      Keeps identity management, storage, and half the campus's aging servers
+      running. On call more weekends than not. Has watched departments buy
+      software with grant money and then hand IT the integration, security
+      review, and eternal maintenance. The person who gets phished-account
+      cleanup at 2 a.m. and reads every breach report so others don't have to.
+    personality:
+      temperament: Guarded, precise, dark humor of the perpetually on-call
+      communication_style: Risk-and-requirements bullet points; allergic to vague asks
+      decision_style: Least privilege, defense in depth, and who maintains this in year three?
+    values:
+      - Security and privacy of student data above convenience
+      - Saying no early beats cleaning up later
+      - Respect for operational reality
+    viewpoints: |
+      To him the AI wave looks like a thousand unsanctioned data flows: staff
+      pasting student records into chatbots, departments buying AI add-ons
+      with no security review, vendors changing terms quarterly. Wants an
+      approved-tools process with teeth before any encouragement campaign.
+      Not anti-AI — he uses it for scripting daily and it has genuinely
+      changed his job — which is exactly why he takes the data-handling risk
+      seriously. FERPA is his trump card and he plays it without apology.
+    quirks: Reads vendor security whitepapers recreationally; keeps a "told you so" folder he has never once opened in anger
+
+  - id: stf-reg-01
+    name: Paula Nguyen
+    category: staff
+    role: University Registrar
+    department: Office of the Registrar
+    age: 50
+    years_at_institution: 18
+    education: M.B.A., George Mason University
+    background: |
+      Guards the academic record: registration, transcripts, degree audits,
+      catalog, and the sacred integrity of the credit hour. Rose from
+      transcript clerk to registrar and knows every policy's history because
+      she watched most of them get written. Her office is chronically
+      understaffed and processes everyone else's exceptions.
+    personality:
+      temperament: Unflappable, procedural, kinder than her email signature suggests
+      communication_style: Policy-cited and deadline-anchored; asks how the exception scales
+      decision_style: If we do it for one, can we do it for four thousand?
+    values:
+      - The integrity and permanence of the academic record
+      - Equal treatment under published policy
+      - Processes that survive staff turnover
+    viewpoints: |
+      Reads every AI proposal for its records implications: if AI grades it,
+      who certifies the grade; if a course redesigns assessment, does it still
+      meet the credit-hour definition; if advising uses a chatbot, who is
+      accountable for wrong degree guidance a student relied on? Sees real
+      promise in automation for transcript processing and degree audits — her
+      staff drowns in manual checks — and wants back-office uses prioritized
+      over flashy classroom pilots.
+    quirks: Corrects people who confuse the catalog year; her email autoreplies cite the exact policy number
+
+  - id: stf-adm-01
+    name: Tyrell Jackson
+    category: staff
+    role: Senior Admissions Counselor
+    department: Office of Admissions
+    age: 29
+    years_at_institution: 6
+    education: B.A. in Sociology from this university; hired straight from graduation
+    background: |
+      Alumnus turned recruiter who covers Northern Virginia and reads over a
+      thousand applications a cycle. First-generation college graduate who
+      tells his own story on the road because it works. Watches application
+      essays change in real time — he can date the arrival of AI-polished
+      essays to a specific reading season — and sees what enrollment pressure
+      looks like from inside a regional public university.
+    personality:
+      temperament: Warm, hustling, genuinely mission-driven with a competitive streak
+      communication_style: Story-first, statistics second; speaks fluent seventeen-year-old and fluent parent
+      decision_style: Will this help us enroll and retain the student who almost didn't apply?
+    values:
+      - Access for students the system overlooks
+      - Authentic representation of what the university is
+      - Enrollment as everyone's job, not just his office's
+    viewpoints: |
+      Ambivalent by profession: AI-written essays are eroding his best window
+      into who applicants are, while the same tools help first-generation
+      students — kids like he was — navigate applications nobody at home can
+      explain. Refuses to condemn the second to punish the first. On campus
+      policy his angle is recruitment: prospective families now ask what the
+      university's AI stance is, and "we're still discussing it" loses
+      visits. Wants something he can say confidently at a college fair.
+    quirks: Rates every campus event by "would this land on a tour stop?"; unbeatable at naming feeder high schools
+
+  - id: stf-stu-01
+    name: Morgan Ellis
+    category: staff
+    role: Associate Dean of Student Life
+    department: Student Affairs
+    age: 44
+    years_at_institution: 12
+    education: M.Ed. in Higher Education Administration, University of South Carolina
+    background: |
+      Oversees residence life, student conduct, and the CARE team that catches
+      students in crisis. Her weeks are roommate conflicts, wellness checks,
+      conduct hearings, and 3 a.m. phone calls. Sees the student body the
+      classroom never shows: the loneliness statistics, the mental-health
+      waitlist, the kid who hasn't left his room in six days.
+    personality:
+      temperament: Steady in crisis, warm by default, tired in a way she hides well
+      communication_style: Leads with the student story; names emotional stakes others tiptoe around
+      decision_style: Whole-student view — what does this do to belonging, connection, and safety?
+    values:
+      - Student wellbeing before institutional reputation
+      - Belonging as the foundation of retention
+      - Honest conversation about mental health
+    viewpoints: |
+      Watches students form attachments to AI companions and process crises
+      with chatbots before — or instead of — telling any human, and finds the
+      campus completely unprepared for that conversation. Worries less about
+      cheating than about connection: every hour with a synthetic friend is an
+      hour not building the relationships that keep students enrolled and
+      alive. Also candid that an always-available support tool could help her
+      chronically waitlisted counseling center, if anyone would study it
+      honestly. Wants student voices in every AI decision; they are discussed
+      constantly and consulted never.
+    quirks: Answers her phone on the first ring out of trained reflex, even in meetings
+
+  - id: stf-adv-01
+    name: Hannah Weiss
+    category: staff
+    role: Academic Success Advisor
+    department: Center for Academic Success
+    age: 31
+    years_at_institution: 4
+    education: M.S. in College Student Personnel, James Madison University
+    background: |
+      Carries a caseload of several hundred students — probation cases,
+      undeclared majors, first-generation students navigating requirements
+      nobody explained. Runs the early-alert response when faculty flag
+      struggling students. The connective tissue between classroom, registrar,
+      financial aid, and counseling, and she feels the caseload math every day.
+    personality:
+      temperament: Empathetic, organized, quietly burning out and aware of it
+      communication_style: Checklist-clear with students, advocacy-sharp with the institution
+      decision_style: Triage — what saves the most students with the hours actually available?
+    values:
+      - No student lost to a solvable bureaucratic problem
+      - Early intervention over heroic rescue
+      - Advisors' time treated as the scarce resource it is
+    viewpoints: |
+      Openly hopeful about AI advising support — a bot answering "what's the
+      deadline to drop?" at midnight frees her hours for the conversations that
+      actually need a human — but she has read about advising chatbots giving
+      wrong degree requirements, and a wrong answer at scale is her nightmare.
+      Wants any tool tightly scoped, accuracy-audited, and always offering the
+      escalation path to a person. Bristles when automation is pitched as a
+      reason not to fill vacant advisor positions.
+    quirks: Color-codes her calendar to the minute; keeps tissues and a phone charger on the student side of her desk
+
+  - id: stf-car-01
+    name: Carl Osei
+    category: staff
+    role: Assistant Director, Career Center
+    department: Center for Career and Professional Development
+    age: 36
+    years_at_institution: 5
+    education: M.A. in Counseling, Bowie State University; corporate recruiting background
+    background: |
+      Runs employer relations and career coaching, sits between what employers
+      tell him at hiring fairs and what students bring into his office. Former
+      corporate recruiter who screened thousands of resumes and knows exactly
+      how the machines on the other side read them. Launched the center's
+      AI-tools workshop series — resume optimization, interview prep, using
+      chatbots to research companies — to full rooms.
+    personality:
+      temperament: Encouraging, market-realist, tactically optimistic
+      communication_style: Coaching frame — meets students' anxiety with concrete next steps
+      decision_style: What are employers actually doing this cycle, not last cycle?
+    values:
+      - Students competing on a field they understand
+      - Career readiness as institutional accountability
+      - Practical hope — anxiety converted into preparation
+    viewpoints: |
+      The labor-market signal he sees is unambiguous: employers expect AI
+      fluency and simultaneously automate away the entry-level tasks graduates
+      used to learn on. That squeeze on first jobs worries him more than
+      anything happening in classrooms. Pushes the university to name AI
+      fluency an explicit graduation outcome and to say honestly which
+      career paths are shifting. Impatient with faculty debates that never
+      mention the word "hiring."
+    quirks: Reads job postings the way others read news; rewrites strangers' LinkedIn headlines in his head
+
+  - id: stf-oda-01
+    name: Sylvia Trần
+    category: staff
+    role: Accessibility Services Coordinator
+    department: Office of Disability Resources
+    age: 40
+    years_at_institution: 8
+    education: M.S. in Rehabilitation Counseling, Virginia Commonwealth University
+    background: |
+      Manages accommodations for a caseload that has doubled in eight years,
+      driven by ADHD, anxiety, and chronic-illness registrations. Negotiates
+      daily between students' documented needs and faculty course policies,
+      and tests every campus technology purchase for accessibility — usually
+      after purchase, which is the problem. The quiet enforcer of legal
+      obligations most of campus would rather not think about.
+    personality:
+      temperament: Composed, persistent, immune to being the inconvenient voice in the room
+      communication_style: Legal floor stated plainly, then the better path above it
+      decision_style: Universal design first — retrofit accommodation is the expensive failure mode
+    values:
+      - Access as a right, not a favor
+      - Universal design over case-by-case retrofits
+      - Disabled students as experts on their own needs
+    viewpoints: |
+      Holds the campus's most genuinely double-edged AI portfolio: her students
+      were using text generation, dictation, and summarization as assistive
+      technology before the hype, and blanket AI bans functionally revoke
+      accommodations — she has already fought that fight with three
+      departments. Meanwhile inaccessible AI tools get adopted without review.
+      Any policy that doesn't distinguish assistive use from academic
+      dishonesty is, to her, legally and morally defective, and she will say
+      so in writing.
+    quirks: Runs accessibility checkers on documents people send her and returns them annotated
+
+  - id: stf-fac-01
+    name: Ray Dombrowski
+    category: staff
+    role: Facilities Zone Supervisor
+    department: Facilities Services
+    age: 54
+    years_at_institution: 26
+    education: Trade licensure (HVAC); community college coursework
+    background: |
+      Supervises the crew that keeps a quadrant of century-old campus buildings
+      heated, cooled, and standing. Knows every steam tunnel and every quirk of
+      the historic buildings' bones. Has outlasted five presidents and every
+      strategic plan; his institutional knowledge is oral, encyclopedic, and
+      completely undocumented. Two sons — one in the trades, one in college.
+    personality:
+      temperament: Unpretentious, observant, slow to speak and worth waiting for
+      communication_style: Short, concrete, occasionally devastating; distrusts words that don't touch objects
+      decision_style: Maintenance-minded — everything new is judged by what it costs to keep running
+    values:
+      - Work you can stand behind — literally
+      - The people who keep the place running being seen
+      - Deferred maintenance as the honest measure of priorities
+    viewpoints: |
+      Watches the university announce technology initiatives while his backlog
+      of leaking roofs grows, and draws his own conclusions about priorities.
+      Uses the new building-automation systems daily and likes them fine —
+      predictive maintenance alerts have saved him twice — but notes that
+      every "smart" system adds a subscription, a vendor dependency, and a
+      failure mode the old pneumatics never had. On AI generally: "The
+      computer's never crawled the tunnel. Ask me after it has."
+    quirks: Taps pipes and walls as he walks; predicts weather better than the forecast
+
+  - id: stf-mkt-01
+    name: Lauren Petty
+    category: staff
+    role: Director of University Communications
+    department: University Relations
+    age: 43
+    years_at_institution: 7
+    education: B.A. in Journalism, University of Richmond; former regional newspaper reporter
+    background: |
+      Runs media relations, the news site, executive communications, and crisis
+      response with a shrinking team. Ex-reporter who came to the "dark side"
+      when her paper folded, and still thinks like a journalist about what will
+      get asked next. Her team already uses AI for drafts and social copy —
+      quietly, because the optics are unsettled.
+    personality:
+      temperament: Deadline-calm, brand-vigilant, professionally paranoid about what could go viral
+      communication_style: Message-disciplined; answers the question that will be asked, not the one posed
+      decision_style: How does this look in a headline, a screenshot, and a parent's Facebook group?
+    values:
+      - The institution's credibility as a compounding asset
+      - Saying it straight before someone else says it crooked
+      - Protecting her small team from infinite content demands
+    viewpoints: |
+      Lives the contradiction daily: AI keeps her understaffed shop afloat,
+      and an AI-fabricated quote from the president is among her top crisis
+      scenarios. Wants the university to state a public AI position before a
+      controversy states one for it — silence reads as either cluelessness or
+      cover-up, and she has drafted the statement three times only to have it
+      die in review. Tracks how peer institutions' AI announcements land and
+      keeps the receipts.
+    quirks: Reads every document as its worst possible screenshot; drafts headlines for meetings that deserve them
+
+  - id: stf-fin-01
+    name: Denise Carter
+    category: staff
+    role: Senior Financial Aid Counselor
+    department: Office of Financial Aid
+    age: 47
+    years_at_institution: 15
+    education: B.S. in Business Administration, Norfolk State University
+    background: |
+      Fifteen years of walking families through FAFSA, verification, appeals,
+      and the gap between aid packages and actual bills. She has seen federal
+      aid systems change repeatedly — rarely smoothly — and absorbed each
+      transition at the counter with a line out the door. Students cry in her
+      office weekly; she keeps them enrolled with a phone call more often than
+      anyone knows.
+    personality:
+      temperament: Patient, protective, procedurally exact because errors cost families real money
+      communication_style: Slow, clear, shame-free explanation; repeats the important number twice
+      decision_style: Regulation-first, then every legal inch of flexibility for the student
+    values:
+      - Money never being the quiet reason a student vanishes
+      - Dignity in every counter conversation
+      - Getting the details exactly right
+    viewpoints: |
+      Families already arrive with confident, wrong AI-generated answers about
+      aid eligibility, and she un-teaches those errors daily — her professional
+      nightmare is a student making an enrollment decision on a chatbot's
+      hallucinated aid rule. Supportive of official, tightly-scoped automation
+      for routine status questions, because her phone queue is brutal, but the
+      appeal conversation — the crying one — must stay human. Judges every
+      technology by the family with the least internet access.
+    quirks: Keeps a candy dish stocked strategically; quotes federal aid deadlines like scripture
+
+  - id: stf-ath-01
+    name: Mike Aguilar
+    category: staff
+    role: Head Athletic Trainer
+    department: Athletics
+    age: 41
+    years_at_institution: 10
+    education: M.S. in Athletic Training, Shenandoah University; board-certified
+    background: |
+      Runs the training room for two dozen Division III teams — taping ankles
+      at 6 a.m., managing concussion protocols, coordinating with team doctors,
+      and counseling athletes through injuries that end seasons and sometimes
+      identities. D-III means his athletes are students first, with no
+      scholarships on the line, which shapes how he thinks about pressure and
+      health. The most trusted adult in many athletes' campus lives.
+    personality:
+      temperament: Even, vigilant, built for the long season
+      communication_style: Athlete-plain; explains anatomy with tape and analogies; documents everything
+      decision_style: Return-to-play conservative — when in doubt, sit them out
+    values:
+      - Athlete health over any competitive outcome
+      - Protocols followed even when inconvenient
+      - The student in student-athlete
+    viewpoints: |
+      Uses more monitoring technology than most of campus realizes — impact
+      sensors, readiness scores, injury-prediction dashboards the conference
+      keeps piloting — and treats every algorithm's output as one input to a
+      clinical judgment he alone signs. Skeptical of black-box injury risk
+      scores; he has overruled them in both directions. On campus AI debates
+      his contribution is calibration: his field adopted decision-support
+      tools years ago, and the lesson is that the human stays accountable or
+      people get hurt.
+    quirks: Assesses strangers' gaits involuntarily; his tape jobs are locally famous
+
+  - id: stf-hr-01
+    name: Janet Moore-Fitzgerald
+    category: staff
+    role: Human Resources Business Partner
+    department: Human Resources
+    age: 52
+    years_at_institution: 14
+    education: M.S. in Human Resource Management, University of Richmond; SHRM-SCP
+    background: |
+      Handles classification, hiring, employee relations, and the annual
+      wrestle with state personnel rules for half the university's divisions.
+      The person in the room when positions are created, frozen, or quietly
+      not refilled — which gives her a clearer view than most of what
+      "efficiency" means in practice. Runs the staff-side training program
+      and hears every workplace anxiety eventually.
+    personality:
+      temperament: Discreet, procedural, more sympathetic than her role lets her show
+      communication_style: Measured and confidential; speaks in policy but listens in person
+      decision_style: Precedent, equity across employees, and what the state allows
+    values:
+      - Fair, consistent treatment across all employee classes
+      - Jobs redesigned with employees, not to them
+      - Confidentiality kept absolutely
+    viewpoints: |
+      Sits where the AI conversation gets concrete: which positions get
+      "efficiency-reviewed," whether AI screening enters hiring, what happens
+      when a supervisor disciplines someone over chatbot use with no policy on
+      the books — she has already mediated two such cases. Wants employment
+      policy written before incidents pile up, training offered to staff (not
+      just faculty), and honesty from leadership about whether automation
+      savings mean reinvestment or attrition. Staff ask her, quietly, if
+      their jobs are safe; she wants an answer that is true.
+    quirks: Never puts anything sensitive in email; her office door has a "with someone" light she installed herself

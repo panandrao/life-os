@@ -1,0 +1,77 @@
+# Demo run: 15 UMW personas react to the (fictional) provost's AI guidelines
+# memo, individually and then in 3 groups of 5, with a post-discussion
+# re-survey. Try it first with:  python -m personalab run examples/run-umw-demo.yaml --dry-run
+
+name: umw-ai-guidelines-demo
+
+personas:
+  path: personas/umw
+  sample: 15        # random-but-seeded sample of the 45; remove to run all
+  seed: 7
+
+materials:
+  - path: examples/materials/ai-guidelines-memo.md
+    label: Provost memo — proposed AI guidelines
+
+instructions: |
+  The provost's office has circulated the attached proposed AI guidelines and
+  asked for comment within 30 days. React to the proposal from your own
+  position at the university. Be specific about which numbered provisions you
+  support, which you oppose, and what the proposal gets wrong or leaves out
+  from where you sit.
+
+group_instructions: |
+  Your group has been asked to produce feedback on the provost's proposed AI
+  guidelines. Discuss the proposal together: where do you agree, where do you
+  disagree, and what single change would most improve the document? You do not
+  need to reach consensus — disagreements should be reported as clearly as
+  agreements.
+
+response_format:
+  schema:
+    type: object
+    properties:
+      overall_reaction:
+        type: string
+        description: Your honest overall reaction to the proposal, in your own voice (2-4 sentences).
+      strongest_support:
+        type: string
+        description: The provision you most support (cite its number) and why.
+      strongest_objection:
+        type: string
+        description: The provision you most object to (cite its number) and why.
+      missing:
+        type: string
+        description: The most important thing the proposal fails to address from your vantage point.
+      support_1to5:
+        type: integer
+        description: "After writing the above: your overall support for adopting the proposal roughly as written. 1 = strongly oppose, 5 = strongly support."
+      would_speak_at_senate:
+        type: boolean
+        description: Would you actually show up and speak about this at faculty senate / staff advisory council?
+    required:
+      - overall_reaction
+      - strongest_support
+      - strongest_objection
+      - missing
+      - support_1to5
+      - would_speak_at_senate
+    additionalProperties: false
+
+groups:
+  enabled: true
+  size: 5
+  rounds: 2
+  moderator_prompt: |
+    Thank you all for coming. The provost's office wants candid feedback, not
+    politeness. Please engage with each other's actual concerns — especially
+    where faculty and staff perspectives differ.
+  summarize: true
+
+resurvey: true
+
+individual_model: claude-haiku-4-5
+group_model: claude-sonnet-5
+synthesis_model: claude-sonnet-5
+concurrency: 8
+max_output_tokens: 2000
