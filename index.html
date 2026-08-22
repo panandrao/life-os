@@ -838,6 +838,7 @@ async function vGoals(m){
 }
 
 // HEALTH
+const HA_ORDER='[health-analysis] Re-run the health/exercise/sleep analysis from current data';
 const HMETRICS={
   sleep_hours:{label:'Sleep',unit:'h',dec:1,better:'high'},
   sleep_score:{label:'Sleep Score',unit:'',dec:0,better:'high'},
@@ -880,10 +881,12 @@ function sparkline(vals,color){
 async function vHealth(m){
   const today=todayStr();
   const since=new Date(Date.now()-34*864e5).toLocaleDateString('en-CA');
-  const [logs, foods] = await Promise.all([
+  const [logs, foods, pendingWO] = await Promise.all([
     qf(()=>sb.from('health_logs').select('*').gte('log_date',since).order('log_date',{ascending:true}), 'Health'),
     qf(()=>sb.from('food_logs').select('*').gte('eaten_at', today+'T00:00:00').order('eaten_at'), 'Food'),
+    qf(()=>sb.from('work_orders').select('id,status,created_at').eq('instruction', HA_ORDER).in('status',['queued','running']).order('created_at',{ascending:false}).limit(1), 'Analysis queue'),
   ]);
+  const haPending = pendingWO && pendingWO[0];
   m.innerHTML='';
 
   // Build date→metric map
@@ -912,13 +915,31 @@ async function vHealth(m){
   if(ha && (ha.week_md||ha.month_md)){
     cA.innerHTML+='<div class="analysis">'+
       '<div class="blk"><h4>This week <span class="rng">7-day</span></h4><div class="body">'+md(ha.week_md||'')+'</div></div>'+
-      '<div class="blk"><h4>This month <span class="rng">30-day</span></h4><div class="body">'+md(ha.month_md||'')+'</div></div></div>'+
-      (ha.generated_at?'<div class="small muted" style="margin-top:8px">Updated '+new Date(ha.generated_at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' · refreshes with your morning brief</div>':'');
+      '<div class="blk"><h4>This month <span class="rng">30-day</span></h4><div class="body">'+md(ha.month_md||'')+'</div></div></div>';
   } else if(hasOura){
     cA.innerHTML+='<div class="small muted">Your first written analysis arrives with tomorrow\'s 6 AM brief. The live numbers below are current now.</div>';
   } else {
     cA.innerHTML+='<div class="empty">Analysis appears once there\'s a week of data. Log sleep and workouts below, or connect a device.</div>';
   }
+  // Refresh controls: queue a work order the runner executes on its next pass (every 2h, 9am-7pm)
+  const foot=document.createElement('div');
+  foot.style.cssText='display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px';
+  const upd = (ha && ha.generated_at) ? 'Updated '+new Date(ha.generated_at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+  if(haPending){
+    const when=new Date(haPending.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    foot.innerHTML='<span class="chip amber">'+(haPending.status==='running'?'re-analyzing now':'refresh queued '+when)+'</span><span class="small muted">Claude picks this up on its next pass (every 2 hours, 9 AM–7 PM).</span>';
+  } else {
+    foot.innerHTML='<button class="btn ghost small" id="ha-refresh">Re-run analysis</button><span class="small muted">'+esc(upd)+(upd?' · ':'')+'also refreshes with your morning brief</span>';
+  }
+  cA.appendChild(foot);
+  const rb=foot.querySelector('#ha-refresh');
+  if(rb) rb.onclick=async ()=>{
+    rb.disabled=true;
+    try{
+      await q(sb.from('work_orders').insert({instruction:HA_ORDER, source:'app'}),'Queue analysis');
+      toast('Queued — analysis refreshes on Claude\'s next pass'); render();
+    }catch(e){ rb.disabled=false; }
+  };
   m.appendChild(cA);
 
   // ---- Metric tiles ----
