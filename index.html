@@ -1178,7 +1178,6 @@ async function vExercise(m){
   ql.innerHTML='<hr class="sep"><button class="btn ghost small" id="ex-addwo">+ Log a workout manually</button><div id="qform"></div>';
   c2.appendChild(ql);
   ql.querySelector('#ex-addwo').onclick=()=>healthForm('workout');
-  m.appendChild(c2);
 
   // ---- Weekly plan (lives in user_profile.exercise_plan; Claude maintains it) ----
   const c3=document.createElement('div'); c3.className='card';
@@ -1245,6 +1244,7 @@ async function vExercise(m){
     c3.innerHTML+='<div class="empty">No plan yet — ask Claude (Coach tab) to build your weekly exercise plan.</div>';
   }
   m.appendChild(c3);
+  m.appendChild(c2);
 
   // ---- Trends ----
   const cum=new Set(['exercise_min','active_energy','stand_hours','workout']);
