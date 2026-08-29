@@ -72,7 +72,7 @@ nav#nav{
 }
 nav#nav button{
   display:flex; flex-direction:column; align-items:center; gap:2px;
-  font-size:10.5px; color:var(--muted); min-width:52px; padding:4px 2px; border-radius:10px;
+  font-size:10.5px; color:var(--muted); min-width:44px; padding:4px 2px; border-radius:10px;
 }
 nav#nav button.on{color:var(--accent); font-weight:600}
 nav#nav svg{width:22px; height:22px}
@@ -434,6 +434,7 @@ const TABS = [
   ['projects','Projects','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'],
   ['goals','Goals','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>'],
   ['health','Health','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 8.6a5 5 0 0 0-8.1-3.9L12 5.3l-.7-.6A5 5 0 0 0 3.2 8.6c0 5 8.8 10.4 8.8 10.4s8.8-5.4 8.8-10.4z"/><path d="M3.5 12h4l1.8-3 2.7 6 1.8-3h4.2"/></svg>'],
+  ['exercise','Exercise','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></svg>'],
   ['reflect','Reflect','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>'],
   ['coach','Coach','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.5-.7L3 21l1.8-4.4A8.4 8.4 0 1 1 21 11.5z"/></svg>'],
 ];
@@ -556,6 +557,7 @@ async function render(){
     else if(S.view==='projects') await (S.projDetail? vProject(m, S.projDetail) : vProjects(m));
     else if(S.view==='goals') await vGoals(m);
     else if(S.view==='health') await vHealth(m);
+    else if(S.view==='exercise') await vExercise(m);
     else if(S.view==='reflect') await vReflect(m);
     else if(S.view==='coach') await vCoach(m);
   }catch(e){ m.innerHTML='<div class="card"><div class="empty">Something went wrong loading this view. Pull to refresh or try again.</div></div>'; }
@@ -852,7 +854,9 @@ const HMETRICS={
   resp_rate:{label:'Resp Rate',unit:'br/min',dec:1,better:'neutral'},
   activity_score:{label:'Activity',unit:'',dec:0,better:'high'},
   active_cal:{label:'Active Cal',unit:'kcal',dec:0,better:'high'},
+  active_energy:{label:'Move (Watch)',unit:'kcal',dec:0,better:'high'},
   exercise_min:{label:'Exercise',unit:'min',dec:0,better:'high'},
+  stand_hours:{label:'Stand',unit:'h',dec:0,better:'high'},
   vo2_max:{label:'VO₂ Max',unit:'',dec:1,better:'high'},
   workout:{label:'Workout',unit:'min',dec:0,better:'high'},
   weight:{label:'Weight',unit:'lb',dec:1,better:'neutral'},
@@ -862,8 +866,9 @@ const HMETRICS={
   sleep_efficiency_watch:{label:'Effic. (Watch)',unit:'%',dec:0,better:'high'},
 };
 // Watch tiles only appear once Apple Health data exists — latest()==null skips them.
-const TILE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','deep_sleep_watch','active_cal','exercise_min','vo2_max'];
-const TABLE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','deep_sleep_watch','rem_sleep','rem_sleep_watch','sleep_efficiency','sleep_efficiency_watch','steps','activity_score','active_cal','exercise_min','vo2_max','workout','weight'];
+// Exercise-centric tiles (rings, exercise minutes, VO2 max, workouts) live on the Exercise tab.
+const TILE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','deep_sleep_watch','active_cal'];
+const TABLE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','deep_sleep_watch','rem_sleep','rem_sleep_watch','sleep_efficiency','sleep_efficiency_watch','steps','activity_score','active_cal','active_energy','exercise_min','stand_hours','vo2_max','workout','weight'];
 const SPARK_COLORS=['var(--accent)','var(--accent2)','var(--accent3)'];
 function sparkline(vals,color){
   vals=vals.filter(v=>v!=null);
@@ -899,7 +904,7 @@ async function vHealth(m){
   }
   const allDays=Object.keys(byDay).sort();
   // Cumulative metrics accrue over the day, so today's value is partial — exclude it from tiles/averages.
-  const CUMULATIVE=new Set(['steps','active_cal','activity_score','workout','exercise_min']);
+  const CUMULATIVE=new Set(['steps','active_cal','active_energy','activity_score','workout','exercise_min','stand_hours']);
   const daysFor=metric=> CUMULATIVE.has(metric)? allDays.filter(d=>d<today) : allDays;
   const series=(metric,n)=>{ const ds=daysFor(metric).slice(-n); return ds.map(d=>byDay[d][metric]).filter(v=>v!=null); };
   const avg=arr=>arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : null;
@@ -971,10 +976,10 @@ async function vHealth(m){
   // ---- Quick log ----
   const c1=document.createElement('div'); c1.className='card';
   c1.innerHTML='<h2>Quick log</h2><div class="qbtns">'+
-    '<button class="btn ghost small" data-k="workout">+ Workout</button>'+
     '<button class="btn ghost small" data-k="sleep">+ Sleep</button>'+
     '<button class="btn ghost small" data-k="weight">+ Weight</button>'+
-    '<button class="btn ghost small" data-k="steps">+ Steps</button></div><div id="qform"></div>';
+    '<button class="btn ghost small" data-k="steps">+ Steps</button>'+
+    '<span class="small muted" style="align-self:center">Workouts & rings live in the Exercise tab.</span></div><div id="qform"></div>';
   c1.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>healthForm(b.dataset.k));
   m.appendChild(c1);
 
@@ -1013,12 +1018,15 @@ async function vHealth(m){
 
   // ---- Devices ----
   const c4=document.createElement('div'); c4.className='card';
-  const oura=S.profile.oura;
+  const oura=S.profile.oura, ah=S.profile.apple_health;
   c4.innerHTML='<h2>Devices</h2><div class="small">'+
     (oura && oura.token
       ? '<span class="chip accent">Oura connected</span> Sleep, readiness, HRV, resting HR, respiratory rate, activity & steps sync automatically twice a day'+(oura.last_sync?' — last sync '+new Date(oura.last_sync).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):'')+'.'
       : 'Oura isn\'t connected yet — tell Claude: <em>"connect my Oura ring"</em> (needs a free personal access token).')+
-    ' Apple Watch: tell Claude <em>"set up Apple Health import"</em>. Self-reported logs always work.</div>';
+    (ah && ah.last_ingest
+      ? ' <span class="chip accent">Apple Health connected</span> Workouts, rings, steps & watch sleep arrive from your phone — last sync '+new Date(ah.last_ingest).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})+'.'
+      : ' Apple Watch: tell Claude <em>"set up Apple Health import"</em>.')+
+    ' Self-reported logs always work.</div>';
   m.appendChild(c4);
 }
 function healthForm(kind){
@@ -1038,6 +1046,183 @@ function healthForm(kind){
     if(kind==='weight') rec.unit='lb';
     await q(sb.from('health_logs').insert(rec),'Log'); render(); toast('Logged');
   };
+}
+
+// EXERCISE
+const RING_DEFAULTS={move:600, exercise:30, stand:12};
+const RING_DEFS=[
+  {key:'active_energy', gkey:'move',     name:'Move',     unit:'kcal', color:'var(--bad)'},
+  {key:'exercise_min',  gkey:'exercise', name:'Exercise', unit:'min',  color:'var(--good)'},
+  {key:'stand_hours',   gkey:'stand',    name:'Stand',    unit:'h',    color:'var(--accent2)'},
+];
+function wCat(t){
+  t=String(t||'').toLowerCase();
+  if(/walk|run|jog|hik|cycl|bike|swim|ellip|stair|row|cardio|dance/.test(t)) return 'cardio';
+  if(/strength|weight|core|functional|kettle|cross|barbell|dumbbell/.test(t)) return 'strength';
+  if(/yoga|stretch|flex|pilates|cooldown|mobility|tai chi/.test(t)) return 'flexibility';
+  return 'other';
+}
+const WCAT_CHIP={cardio:['cardio','accent'], strength:['strength','amber'], flexibility:['stretch','accent'], other:['other','']};
+function ringSVG(rings){
+  let s='<svg viewBox="0 0 150 150" style="width:150px;height:150px;flex:none" role="img" aria-label="Activity rings">';
+  rings.forEach((r,i)=>{
+    const rad=64-i*19, C=2*Math.PI*rad, pct=Math.max(0,Math.min(r.pct||0,1));
+    s+='<circle cx="75" cy="75" r="'+rad+'" fill="none" stroke-width="15" style="stroke:'+r.color+';opacity:.15"/>';
+    if(pct>0.005) s+='<circle cx="75" cy="75" r="'+rad+'" fill="none" stroke-width="15" stroke-linecap="round" stroke-dasharray="'+(C*pct).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 75 75)" style="stroke:'+r.color+'"/>';
+  });
+  return s+'</svg>';
+}
+async function vExercise(m){
+  const today=todayStr();
+  const since=new Date(Date.now()-90*864e5).toLocaleDateString('en-CA');
+  const logs=await qf(()=>sb.from('health_logs').select('*').gte('log_date',since).in('metric',['workout','exercise_min','active_energy','stand_hours','vo2_max']).order('log_date',{ascending:true}),'Exercise');
+  m.innerHTML='';
+  const goals={...RING_DEFAULTS, ...(S.profile.ring_goals||{})};
+  const byDay={}, sessions=[];
+  for(const l of logs){
+    const d=(byDay[l.log_date] ||= {});
+    if(l.metric==='workout'){ sessions.push(l); d.workout=(d.workout||0)+Number(l.value||0); }
+    else d[l.metric]=Number(l.value);
+  }
+  const cal=[]; { const d=new Date(since+'T12:00:00'), end=new Date(today+'T12:00:00'); while(d<=end){ cal.push(d.toLocaleDateString('en-CA')); d.setDate(d.getDate()+1); } }
+  const val=(day,key)=>{ const v=byDay[day]?.[key]; return v==null?null:v; };
+  const met=(day,rd)=>{ const v=val(day,rd.key); return v!=null && v>=(goals[rd.gkey]||1); };
+  const fmtI=v=>Math.round(v).toLocaleString();
+
+  // ---- Rings: today + how often each closes + streaks ----
+  const cR=document.createElement('div'); cR.className='card';
+  cR.innerHTML='<h2>Activity rings<span class="spacer"></span><button class="chip" id="rg-edit" style="cursor:pointer">edit goals</button></h2>';
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex; gap:18px; align-items:center; flex-wrap:wrap';
+  wrap.innerHTML=ringSVG(RING_DEFS.map(rd=>({pct:(val(today,rd.key)||0)/(goals[rd.gkey]||1), color:rd.color})))+
+    '<div style="flex:1; min-width:230px" id="ring-legend"></div>';
+  const leg=wrap.querySelector('#ring-legend');
+  const last30=cal.filter(d=>d<today).slice(-30);
+  for(const rd of RING_DEFS){
+    const row=document.createElement('div');
+    row.style.cssText='padding:7px 0; border-bottom:1px solid var(--line)';
+    if(!cal.some(d=>val(d,rd.key)!=null)){
+      row.innerHTML='<div class="row"><span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+rd.color+'"></span><strong>'+rd.name+'</strong><span class="small muted" style="margin-left:auto">arrives with your next phone sync</span></div>';
+      leg.appendChild(row); continue;
+    }
+    const met30=last30.filter(d=>met(d,rd)).length;
+    let streak=0; { let i=cal.length-1; if(!met(cal[i],rd)) i--; while(i>=0 && met(cal[i],rd)){ streak++; i--; } }
+    let best=0,run=0; for(const d of cal){ if(met(d,rd)){ run++; if(run>best)best=run; } else if(d!==today) run=0; }
+    const tv=val(today,rd.key);
+    row.innerHTML='<div class="row"><span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+rd.color+'"></span><strong>'+rd.name+'</strong>'+
+      '<span class="mono small" style="margin-left:auto; font-variant-numeric:tabular-nums">'+(tv==null?'0':fmtI(tv))+' / '+goals[rd.gkey]+' '+rd.unit+'</span></div>'+
+      '<div class="small muted" style="margin-left:20px">closed '+met30+' of last 30 days'+
+      (streak>0?' · <span style="color:var(--good); font-weight:600">'+streak+'-day streak</span>':'')+
+      (best>1?' · best '+best:'')+'</div>';
+    leg.appendChild(row);
+  }
+  if(RING_DEFS.every(rd=>cal.some(d=>val(d,rd.key)!=null))){
+    const allMet=d=>RING_DEFS.every(rd=>met(d,rd));
+    let streak=0; { let i=cal.length-1; if(!allMet(cal[i])) i--; while(i>=0 && allMet(cal[i])){ streak++; i--; } }
+    const row=document.createElement('div'); row.style.cssText='padding:7px 0';
+    row.innerHTML='<div class="row"><strong>All three closed</strong><span class="small muted" style="margin-left:auto">'+last30.filter(allMet).length+' of last 30 days'+(streak>0?' · '+streak+'-day streak':'')+'</span></div>';
+    leg.appendChild(row);
+  }
+  cR.appendChild(wrap);
+  const rNote=document.createElement('div'); rNote.className='small muted'; rNote.style.marginTop='8px';
+  rNote.textContent='Today\'s rings fill live through the day (streaks count yesterday until you close them). Set the goals to match your Apple Watch.';
+  cR.appendChild(rNote);
+  m.appendChild(cR);
+  cR.querySelector('#rg-edit').onclick=()=>{
+    openModal('<h3>Ring goals</h3><div class="small muted">Set these to match the goals on your Apple Watch.</div>'+
+      '<label>Move (kcal)</label><input id="rg-move" type="number" inputmode="numeric" value="'+goals.move+'">'+
+      '<label>Exercise (min)</label><input id="rg-ex" type="number" inputmode="numeric" value="'+goals.exercise+'">'+
+      '<label>Stand (hours)</label><input id="rg-st" type="number" inputmode="numeric" value="'+goals.stand+'">'+
+      '<button class="btn" id="rg-save" style="width:100%; margin-top:16px">Save</button>');
+    $('#rg-save').onclick=async ()=>{
+      const v={move:+$('#rg-move').value||RING_DEFAULTS.move, exercise:+$('#rg-ex').value||RING_DEFAULTS.exercise, stand:+$('#rg-st').value||RING_DEFAULTS.stand};
+      await q(sb.from('user_profile').upsert({key:'ring_goals', value:v, updated_at:new Date().toISOString()}),'Save goals');
+      S.profile.ring_goals=v; closeModal(); toast('Ring goals updated'); render();
+    };
+  };
+
+  // ---- Sessions: this week vs plan + recent list ----
+  const plan=S.profile.exercise_plan||{};
+  const tgt=plan.targets||{cardio:5, strength:2, flexibility:2};
+  const c2=document.createElement('div'); c2.className='card';
+  const wk=new Set(cal.slice(-7));
+  const wkSes=sessions.filter(s=>wk.has(s.log_date));
+  const wkMin=Math.round(wkSes.reduce((a,s)=>a+Number(s.value||0),0));
+  const wkKcal=Math.round(wkSes.reduce((a,s)=>a+(Number(s.details?.energy_kcal)||0),0));
+  const tally={cardio:0,strength:0,flexibility:0,other:0};
+  for(const s of wkSes) tally[wCat(s.details?.type)]++;
+  c2.innerHTML='<h2>Exercise sessions</h2>'+
+    '<div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:4px">'+
+      '<span class="chip accent">'+wkSes.length+' session'+(wkSes.length===1?'':'s')+' · last 7 days</span>'+
+      '<span class="chip">'+wkMin.toLocaleString()+' min</span>'+
+      (wkKcal?'<span class="chip">'+wkKcal.toLocaleString()+' kcal</span>':'')+'</div>'+
+    '<div class="small muted" style="margin-bottom:6px">vs plan: cardio '+tally.cardio+'/'+tgt.cardio+' · strength '+tally.strength+'/'+tgt.strength+' · stretch '+tally.flexibility+'/'+tgt.flexibility+'</div>';
+  const cutoff=cal[Math.max(0,cal.length-14)];
+  const recent=sessions.filter(s=>s.log_date>=cutoff)
+    .sort((a,b)=> a.log_date===b.log_date ? String(b.details?.start||'').localeCompare(String(a.details?.start||'')) : (a.log_date<b.log_date?1:-1));
+  if(!recent.length) c2.innerHTML+='<div class="empty">No sessions in the last two weeks. They arrive automatically from your watch, or log one below.</div>';
+  for(const s of recent){
+    const [cl,cc]=WCAT_CHIP[wCat(s.details?.type)];
+    const tm=String(s.details?.start||'').slice(11,16);
+    const d=document.createElement('div'); d.className='task';
+    d.innerHTML='<div class="t"><div>'+esc(s.details?.type||'Workout')+' <span class="chip '+cc+'">'+cl+'</span>'+(s.source==='self'?' <span class="chip">self</span>':'')+'</div>'+
+      '<div class="meta"><span class="small muted">'+fmtD(s.log_date)+(tm?' · '+tm:'')+'</span><span class="chip">'+Math.round(s.value)+' min</span>'+
+      (s.details?.energy_kcal?'<span class="chip">'+Math.round(s.details.energy_kcal)+' kcal</span>':'')+
+      (s.details?.avg_hr?'<span class="chip">'+Math.round(s.details.avg_hr)+' bpm avg</span>':'')+'</div></div>';
+    c2.appendChild(d);
+  }
+  const ql=document.createElement('div');
+  ql.innerHTML='<hr class="sep"><button class="btn ghost small" id="ex-addwo">+ Log a workout manually</button><div id="qform"></div>';
+  c2.appendChild(ql);
+  ql.querySelector('#ex-addwo').onclick=()=>healthForm('workout');
+  m.appendChild(c2);
+
+  // ---- Weekly plan (lives in user_profile.exercise_plan; Claude maintains it) ----
+  const c3=document.createElement('div'); c3.className='card';
+  c3.innerHTML='<h2>Weekly plan</h2>';
+  if(plan.cardio_md || plan.strength_md || plan.flexibility_md || (Array.isArray(plan.schedule)&&plan.schedule.length)){
+    if(Array.isArray(plan.schedule)&&plan.schedule.length)
+      c3.innerHTML+='<div class="sched" style="margin-bottom:12px">'+plan.schedule.map(s=>'<div class="tm">'+esc(s.day||'')+'</div><div>'+esc(s.plan||'')+'</div>').join('')+'</div>';
+    if(plan.week_md) c3.innerHTML+='<div class="small" style="margin-bottom:10px">'+md(plan.week_md)+'</div>';
+    c3.innerHTML+='<div class="analysis">'+
+      (plan.cardio_md?'<div class="blk"><h4>Cardio</h4><div class="body">'+md(plan.cardio_md)+'</div></div>':'')+
+      (plan.strength_md?'<div class="blk"><h4>Strength</h4><div class="body">'+md(plan.strength_md)+'</div></div>':'')+
+      (plan.flexibility_md?'<div class="blk"><h4>Stretch & yoga</h4><div class="body">'+md(plan.flexibility_md)+'</div></div>':'')+'</div>'+
+      '<div class="small muted" style="margin-top:10px">To adjust the plan (weights, days, exercises), tell Claude — it updates here'+(plan.updated_at?' · last updated '+fmtD(String(plan.updated_at).slice(0,10)):'')+'.</div>';
+  } else {
+    c3.innerHTML+='<div class="empty">No plan yet — ask Claude (Coach tab) to build your weekly exercise plan.</div>';
+  }
+  m.appendChild(c3);
+
+  // ---- Trends ----
+  const cum=new Set(['exercise_min','active_energy','stand_hours','workout']);
+  const exDays=Object.keys(byDay).sort();
+  const dFor=k=>cum.has(k)? exDays.filter(d=>d<today) : exDays;
+  const ser=(k,n)=>{ const ds=dFor(k).slice(-n); return ds.map(d=>byDay[d][k]).filter(v=>v!=null); };
+  const av=a=>a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
+  const lat=k=>{ const ds=dFor(k); for(let i=ds.length-1;i>=0;i--){ const v=byDay[ds[i]][k]; if(v!=null) return v; } return null; };
+  const fmtN=(v,dec)=> v==null?'—' : (dec? (Math.round(v*10)/10).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}) : Math.round(v).toLocaleString());
+  const cT=document.createElement('div'); cT.className='card';
+  cT.innerHTML='<h2>Trends</h2><div class="mtiles"></div>';
+  const grid=cT.querySelector('.mtiles');
+  let ci=0, any=false;
+  for(const key of ['exercise_min','active_energy','stand_hours','workout','vo2_max']){
+    const cfg=HMETRICS[key]; const lv=lat(key); if(lv==null) continue;
+    any=true;
+    const a7=av(ser(key,7)), a30=av(ser(key,30));
+    let cls='flat', arrow='→';
+    if(a7!=null && a30!=null && Math.abs(a7-a30) > Math.abs(a30)*0.01){
+      const up=a7>a30; arrow=up?'↑':'↓';
+      cls = cfg.better==='neutral'? 'flat' : ((cfg.better==='high')===up ? 'good':'bad');
+    }
+    const tile=document.createElement('div'); tile.className='mtile';
+    tile.innerHTML='<div class="lab">'+cfg.label+'</div>'+
+      '<div class="val">'+fmtN(lv,cfg.dec)+(cfg.unit?'<span class="u">'+cfg.unit+'</span>':'')+'</div>'+
+      sparkline(ser(key,14),SPARK_COLORS[ci++%3])+
+      '<div class="sub"><span class="delta '+cls+'">'+arrow+' 7d '+fmtN(a7,cfg.dec)+'</span><span>· 30d '+fmtN(a30,cfg.dec)+'</span></div>';
+    grid.appendChild(tile);
+  }
+  if(any) m.appendChild(cT);
 }
 
 // REFLECT
