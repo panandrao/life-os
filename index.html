@@ -167,6 +167,9 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 }
 @media (prefers-reduced-motion: reduce){ #breath-circle{transition:none} }
 
+/* Weekly-plan check rows: show the green check without striking the text */
+.task.planrow.done .t, .task.planrow.done .t *{text-decoration:none}
+
 .goal{padding:10px 0; border-bottom:1px solid var(--line)}
 .goal:last-child{border-bottom:none}
 .goal .head{display:flex; gap:8px; align-items:baseline; cursor:pointer}
@@ -1049,7 +1052,7 @@ function healthForm(kind){
 }
 
 // EXERCISE
-const RING_DEFAULTS={move:600, exercise:30, stand:12};
+const RING_DEFAULTS={move:850, exercise:30, stand:12};
 const RING_DEFS=[
   {key:'active_energy', gkey:'move',     name:'Move',     unit:'kcal', color:'var(--bad)'},
   {key:'exercise_min',  gkey:'exercise', name:'Exercise', unit:'min',  color:'var(--good)'},
@@ -1181,14 +1184,63 @@ async function vExercise(m){
   const c3=document.createElement('div'); c3.className='card';
   c3.innerHTML='<h2>Weekly plan</h2>';
   if(plan.cardio_md || plan.strength_md || plan.flexibility_md || (Array.isArray(plan.schedule)&&plan.schedule.length)){
-    if(Array.isArray(plan.schedule)&&plan.schedule.length)
-      c3.innerHTML+='<div class="sched" style="margin-bottom:12px">'+plan.schedule.map(s=>'<div class="tm">'+esc(s.day||'')+'</div><div>'+esc(s.plan||'')+'</div>').join('')+'</div>';
-    if(plan.week_md) c3.innerHTML+='<div class="small" style="margin-bottom:10px">'+md(plan.week_md)+'</div>';
-    c3.innerHTML+='<div class="analysis">'+
+    // This week's checklist: watch-recorded workouts check themselves off; tap to log the rest.
+    if(Array.isArray(plan.schedule)&&plan.schedule.length){
+      c3.innerHTML+='<div class="small muted" style="margin-bottom:4px">Tap a day to mark it done — workouts recorded on your watch check themselves off.</div>';
+      const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const t=new Date(today+'T12:00:00');
+      const mon=new Date(t); mon.setDate(t.getDate()-((t.getDay()+6)%7));
+      const list=document.createElement('div'); list.style.marginBottom='12px';
+      plan.schedule.forEach((s,idx)=>{
+        const di=DOW.indexOf(String(s.day||'').slice(0,3));
+        const d=new Date(mon); d.setDate(mon.getDate()+(di<0?idx:di));
+        const date=d.toLocaleDateString('en-CA');
+        const cat=s.cat||wCat(s.plan);
+        const future=date>today, isToday=date===today;
+        const manual=sessions.find(x=>x.log_date===date && x.source==='self' && x.details?.plan_slot===idx);
+        const auto=!manual && sessions.some(x=>x.log_date===date && wCat(x.details?.type)===cat && Number(x.value)>=10);
+        const done=!!manual||auto;
+        const row=document.createElement('div');
+        row.className='task tappable planrow'+(done?' done':'');
+        row.setAttribute('role','button'); row.tabIndex=0;
+        row.setAttribute('aria-label',(done?'Done: ':'Mark done: ')+(s.plan||''));
+        if(future) row.style.opacity='.45';
+        row.innerHTML='<span class="box" aria-hidden="true">✓</span><div class="t"><div>'+esc(s.plan||'')+'</div>'+
+          '<div class="meta"><span class="small muted">'+esc(s.day||'')+' · '+fmtD(date)+'</span>'+
+          (isToday?'<span class="chip accent">today</span>':'')+
+          (auto?'<span class="chip">from your watch</span>':'')+'</div></div>';
+        let busy=false;
+        const tap=async ()=>{
+          if(busy) return; busy=true;
+          try{
+            if(future){ toast('That one\'s later this week'); }
+            else if(auto){ toast('Already logged from your watch ✓'); }
+            else if(manual){
+              await q(sb.from('health_logs').delete().eq('id',manual.id),'Un-log');
+              toast('Unchecked'); render(); return;
+            } else {
+              const mins=Number(s.min)||(cat==='cardio'?60:(cat==='flexibility'?20:25));
+              const type=s.type||(cat==='cardio'?'Walk':(cat==='flexibility'?'Stretching':'Weight lifting'));
+              await q(sb.from('health_logs').insert({log_date:date, metric:'workout', value:mins, unit:'min', source:'self',
+                details:{type, intensity:'moderate', plan_slot:idx, plan_day:s.day, from:'plan_check'}}),'Log workout');
+              toast('Logged ✓ — tap again to undo'); render(); return;
+            }
+          }finally{ busy=false; }
+        };
+        row.onclick=tap;
+        row.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tap(); } });
+        list.appendChild(row);
+      });
+      c3.appendChild(list);
+    }
+    const detail=document.createElement('div');
+    detail.innerHTML=(plan.week_md?'<div class="small" style="margin-bottom:10px">'+md(plan.week_md)+'</div>':'')+
+      '<div class="analysis">'+
       (plan.cardio_md?'<div class="blk"><h4>Cardio</h4><div class="body">'+md(plan.cardio_md)+'</div></div>':'')+
       (plan.strength_md?'<div class="blk"><h4>Strength</h4><div class="body">'+md(plan.strength_md)+'</div></div>':'')+
       (plan.flexibility_md?'<div class="blk"><h4>Stretch & yoga</h4><div class="body">'+md(plan.flexibility_md)+'</div></div>':'')+'</div>'+
       '<div class="small muted" style="margin-top:10px">To adjust the plan (weights, days, exercises), tell Claude — it updates here'+(plan.updated_at?' · last updated '+fmtD(String(plan.updated_at).slice(0,10)):'')+'.</div>';
+    c3.appendChild(detail);
   } else {
     c3.innerHTML+='<div class="empty">No plan yet — ask Claude (Coach tab) to build your weekly exercise plan.</div>';
   }
