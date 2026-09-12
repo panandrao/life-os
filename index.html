@@ -305,6 +305,14 @@ nav#nav button.on{background:var(--accent-soft); color:var(--accent)}
 .task .edit-btn{flex:none; align-self:flex-start; width:32px; height:32px; margin:-4px -6px 0 2px; border-radius:8px; display:grid; place-items:center; color:var(--muted); opacity:.55}
 .task .edit-btn:hover, .task .edit-btn:focus-visible{opacity:1; background:var(--surface2); color:var(--accent)}
 @media(hover:hover){ .task .edit-btn{opacity:0} .task:hover .edit-btn{opacity:.8} }
+/* Star = top priority for the day. Always visible so it works as a one-tap toggle on phone. */
+.task .star-btn{flex:none; align-self:flex-start; width:32px; height:32px; margin:-4px 0 0 2px; border-radius:8px; display:grid; place-items:center; color:var(--muted); opacity:.45; -webkit-tap-highlight-color:transparent}
+.task .star-btn svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round}
+.task .star-btn:hover, .task .star-btn:focus-visible{opacity:1; background:var(--surface2); color:var(--amber)}
+.task .star-btn.on{opacity:1; color:var(--amber)}
+.task .star-btn.on svg{fill:currentColor}
+.task.starred .t > div:first-child{font-weight:600}
+.task.starred.done .t > div:first-child{font-weight:400}
 
 /* Health metric tiles + sparklines */
 .mtiles{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
@@ -469,9 +477,12 @@ function setTab(id){
 window.addEventListener('hashchange', ()=>{ const h=location.hash.replace('#',''); if(TABS.some(t=>t[0]===h)) setTab(h); });
 
 // ------- task bits -------
+// Starred tasks always sort first; within each group the caller's own order is kept (stable sort).
+function starFirst(arr, cmp){ return arr.slice().sort((a,b)=> (b.starred?1:0)-(a.starred?1:0) || (cmp?cmp(a,b):0)); }
+const STAR_SVG='<svg viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1L3.2 9.6l6.1-.8z"/></svg>';
 function taskRow(t, showProj=true){
   const div=document.createElement('div');
-  div.className='task tappable'+(t.status==='done'?' done':'');
+  div.className='task tappable'+(t.status==='done'?' done':'')+(t.starred?' starred':'');
   div.setAttribute('role','button'); div.tabIndex=0;
   div.setAttribute('aria-label','Toggle done: '+t.title);
   const over = t.due_date && t.due_date < todayStr() && t.status!=='done';
@@ -484,10 +495,30 @@ function taskRow(t, showProj=true){
   div.innerHTML = '<span class="box" aria-hidden="true">✓</span><div class="t"><div>'+esc(t.title)+'</div>'+
     (meta.length?'<div class="meta">'+meta.join('')+'</div>':'')+
     (t.notes?'<div class="small muted">'+esc(t.notes)+'</div>':'')+'</div>'+
+    '<button class="star-btn'+(t.starred?' on':'')+'" aria-pressed="'+(t.starred?'true':'false')+'" aria-label="Star: put at top of today" title="'+(t.starred?'Unstar':'Star — top of the list')+'">'+STAR_SVG+'</button>'+
     '<button class="edit-btn" aria-label="Edit task" title="Edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>';
   const editBtn=div.querySelector('.edit-btn');
   editBtn.onclick=(e)=>{ e.stopPropagation(); editTaskModal(t); };
   editBtn.addEventListener('keydown', e=>{ e.stopPropagation(); });
+  const starBtn=div.querySelector('.star-btn');
+  let starBusy=false;
+  starBtn.onclick=async (e)=>{
+    e.stopPropagation();
+    if(starBusy) return; starBusy=true;
+    const on=!t.starred;
+    t.starred=on; starBtn.classList.toggle('on',on); starBtn.setAttribute('aria-pressed', on?'true':'false'); div.classList.toggle('starred',on);
+    try{
+      await q(sb.from('tasks').update({starred:on, updated_at:new Date().toISOString()}).eq('id',t.id),'Star task');
+      const cached=S.tasksOpen.find(x=>x.id===t.id); if(cached) cached.starred=on;
+      toast(on?'★ Starred — moved to the top':'Unstarred');
+      render();
+    }catch(err){
+      t.starred=!on; starBtn.classList.toggle('on',!on); starBtn.setAttribute('aria-pressed', !on?'true':'false'); div.classList.toggle('starred',!on);
+    }
+    starBusy=false;
+  };
+  starBtn.addEventListener('keydown', e=>{ e.stopPropagation(); });
+  starBtn.addEventListener('touchstart', e=>{ e.stopPropagation(); }, {passive:true});
   // Long-press (mobile) also opens edit
   let pressTimer=null, longPressed=false;
   div.addEventListener('touchstart', ()=>{ longPressed=false; pressTimer=setTimeout(()=>{ longPressed=true; editTaskModal(t); }, 550); }, {passive:true});
@@ -523,6 +554,7 @@ function editTaskModal(t){
       '<div style="flex:1; min-width:140px"><label>Due date</label><input id="et-due" type="date" value="'+esc(t.due_date||'')+'"></div>'+
       '<div style="flex:1; min-width:120px"><label>Priority</label><select id="et-pri"><option value="1"'+(t.priority===1?' selected':'')+'>P1 — urgent</option><option value="2"'+(t.priority===2?' selected':'')+'>P2 — normal</option><option value="3"'+(t.priority===3?' selected':'')+'>P3 — someday</option></select></div>'+
     '</div>'+
+    '<label class="row" style="gap:8px; margin-top:10px; cursor:pointer"><input id="et-star" type="checkbox" style="width:auto; margin:0"'+(t.starred?' checked':'')+'> <span>★ Starred — pin to the top of today\'s list</span></label>'+
     '<label>Project</label>'+projSelect('et-proj', t.project_id)+
     '<div class="row" style="margin-top:16px; gap:8px">'+
       '<button class="btn" id="et-save" style="flex:1">Save changes</button>'+
@@ -534,7 +566,7 @@ function editTaskModal(t){
   $('#et-save').onclick=async ()=>{
     const title=$('#et-title').value.trim(); if(!title){ toast('Title can\'t be empty'); return; }
     const due=$('#et-due').value||null;
-    const upd={ title, notes:($('#et-notes').value.trim()||null), due_date:due, scheduled_for:due, priority:Number($('#et-pri').value), project_id:($('#et-proj').value||null), updated_at:new Date().toISOString() };
+    const upd={ title, notes:($('#et-notes').value.trim()||null), due_date:due, scheduled_for:due, priority:Number($('#et-pri').value), starred:$('#et-star').checked, project_id:($('#et-proj').value||null), updated_at:new Date().toISOString() };
     const btn=$('#et-save'); btn.disabled=true;
     try{
       await q(sb.from('tasks').update(upd).eq('id',t.id),'Save task');
@@ -636,8 +668,10 @@ async function vToday(m){
   // Today's tasks
   const c3=document.createElement('div'); c3.className='card';
   c3.innerHTML='<h2>Today\'s tasks</h2>';
-  const dueToday = S.tasksOpen.filter(t=> (t.due_date && t.due_date<=today) || (t.scheduled_for && t.scheduled_for<=today))
-    .sort((a,b)=> (a.due_date||'9999') < (b.due_date||'9999') ? -1 : a.priority-b.priority);
+  // Starred tasks always lead; then by due date, then priority. Starred tasks with no date still surface here.
+  const dueToday = starFirst(
+    S.tasksOpen.filter(t=> t.starred || (t.due_date && t.due_date<=today) || (t.scheduled_for && t.scheduled_for<=today)),
+    (a,b)=> (a.due_date||'9999') < (b.due_date||'9999') ? -1 : (a.due_date||'9999') > (b.due_date||'9999') ? 1 : a.priority-b.priority);
   if(dueToday.length===0) c3.innerHTML+='<div class="empty">Nothing scheduled for today. Add something in the box above, or check Projects.</div>';
   for(const t of dueToday) c3.appendChild(taskRow(t));
   m.appendChild(c3);
@@ -675,7 +709,7 @@ async function vToday(m){
   }
 
   // Upcoming (next 7 days)
-  const week = S.tasksOpen.filter(t=> t.due_date && t.due_date>today).sort((a,b)=>a.due_date<b.due_date?-1:1).slice(0,8);
+  const week = S.tasksOpen.filter(t=> !t.starred && t.due_date && t.due_date>today).sort((a,b)=>a.due_date<b.due_date?-1:1).slice(0,8);
   if(week.length){
     const c4=document.createElement('div'); c4.className='card';
     c4.innerHTML='<h2>Coming up</h2>';
@@ -750,7 +784,7 @@ async function vProject(m, pid){
 
   const tc=document.createElement('div'); tc.className='card';
   tc.innerHTML='<h2>Tasks</h2>';
-  const open=allTasks.filter(t=>['todo','doing'].includes(t.status));
+  const open=starFirst(allTasks.filter(t=>['todo','doing'].includes(t.status)));
   const done=allTasks.filter(t=>t.status==='done').slice(0,10);
   if(open.length===0) tc.innerHTML+='<div class="empty">No open tasks.</div>';
   for(const t of open) tc.appendChild(taskRow(t,false));
