@@ -932,10 +932,11 @@ function sparkline(vals,color){
 async function vHealth(m){
   const today=todayStr();
   const since=new Date(Date.now()-34*864e5).toLocaleDateString('en-CA');
-  const [logs, foods, pendingWO] = await Promise.all([
+  const [logs, foods, pendingWO, labs] = await Promise.all([
     qf(()=>sb.from('health_logs').select('*').gte('log_date',since).order('log_date',{ascending:true}), 'Health'),
     qf(()=>sb.from('food_logs').select('*').gte('eaten_at', today+'T00:00:00').order('eaten_at'), 'Food'),
     qf(()=>sb.from('work_orders').select('id,status,created_at').eq('instruction', HA_ORDER).in('status',['queued','running']).order('created_at',{ascending:false}).limit(1), 'Analysis queue'),
+    qf(()=>sb.from('lab_results').select('*').order('collected_on',{ascending:false}).order('created_at',{ascending:true}).limit(300), 'Labs'),
   ]);
   const haPending = pendingWO && pendingWO[0];
   m.innerHTML='';
@@ -992,6 +993,42 @@ async function vHealth(m){
     }catch(e){ rb.disabled=false; }
   };
   m.appendChild(cA);
+
+  // ---- Bloodwork card (lab_results: latest draw vs the one before, plus Claude's written read in health_analysis.labs_md) ----
+  if(labs && labs.length){
+    const cL=document.createElement('div'); cL.className='card';
+    const dates=[...new Set(labs.map(l=>l.collected_on))].sort().reverse();
+    const latestD=dates[0], priorD=dates[1];
+    const cur=labs.filter(l=>l.collected_on===latestD);
+    const prior=Object.fromEntries(labs.filter(l=>l.collected_on===priorD).map(l=>[l.panel+'|'+l.component,l]));
+    const panels=[...new Set(cur.map(l=>l.panel))];
+    cL.innerHTML='<h2>Bloodwork</h2><div class="small muted" style="margin:-4px 0 10px">'+esc(panels.join(', '))+' · drawn '+fmtD(latestD)+(cur[0]?.lab?' · '+esc(cur[0].lab):'')+(priorD?' · compared with '+fmtD(priorD):'')+'</div>';
+    if(ha && ha.labs_md){
+      cL.innerHTML+='<div class="analysis" style="margin-bottom:12px"><div class="blk"><h4>What it says <span class="rng">'+(ha.labs_updated_at?'read '+fmtD(String(ha.labs_updated_at).slice(0,10)):'')+'</span></h4><div class="body">'+md(ha.labs_md)+'</div></div></div>';
+    }
+    const fmtV=l=> l.value==null ? esc(l.value_text||'—') : (Number(l.value)%1 ? Number(l.value).toFixed(2).replace(/0$/,'') : String(Number(l.value)));
+    const range=l=> (l.ref_low!=null && l.ref_high!=null) ? l.ref_low+'–'+l.ref_high : l.ref_high!=null ? '≤'+l.ref_high : l.ref_low!=null ? '>'+l.ref_low : '';
+    const edge=l=>{ if(l.flag) return l.flag; if(l.value==null || l.ref_low==null || l.ref_high==null) return ''; const v=Number(l.value), span=l.ref_high-l.ref_low; if(v>=l.ref_high-span*0.05) return 'edge-high'; if(v<=l.ref_low+span*0.05) return 'edge-low'; return ''; };
+    let rows='';
+    for(const l of cur){
+      const p=prior[l.panel+'|'+l.component];
+      let delta='';
+      if(p && p.value!=null && l.value!=null){
+        const d=Number(l.value)-Number(p.value); const pct=Number(p.value)? Math.abs(d/Number(p.value)) : 0;
+        delta='<span class="small'+(pct>=0.15?'':' muted')+'">'+fmtV(p)+' '+(d>0?'↑':d<0?'↓':'→')+'</span>';
+      }
+      const e=edge(l);
+      const chip = (e==='high'||e==='low') ? ' <span class="chip amber">'+e+'</span>' : e ? ' <span class="chip">'+(e==='edge-high'?'top of range':'bottom of range')+'</span>' : '';
+      rows+='<tr><td>'+esc(l.component)+chip+'</td><td><strong>'+fmtV(l)+'</strong> <span class="small muted">'+esc(l.unit||'')+'</span></td><td>'+delta+'</td><td class="small muted">'+esc(range(l))+'</td></tr>';
+    }
+    const wrap=document.createElement('div'); wrap.style.overflowX='auto';
+    wrap.innerHTML='<table class="h7"><thead><tr><th>Test</th><th>'+fmtD(latestD)+'</th><th>'+(priorD?'Prior ('+fmtD(priorD)+')':'')+'</th><th>Range</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    cL.appendChild(wrap);
+    const note=document.createElement('div'); note.className='small muted'; note.style.marginTop='8px';
+    note.textContent='Values as reported by the lab. Claude\'s read is context for your conversation with your doctor, not a diagnosis.';
+    cL.appendChild(note);
+    m.appendChild(cL);
+  }
 
   // ---- Metric tiles ----
   if(allDays.length){
