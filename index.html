@@ -594,8 +594,18 @@ function projSelect(id, selected){
 }
 
 // ------- views -------
+// Re-rendering the view that is already on screen (after adding, starring, logging…) keeps the old
+// content visible until the new data arrives and holds the scroll position. Only navigation shows "Loading…".
+let shownKey=null, renderSeq=0;
 async function render(){
-  const m=$('#main'); m.innerHTML='<div class="empty">Loading…</div>';
+  const m=$('#main');
+  const key=S.view+'|'+(S.projDetail||'');
+  const soft = key===shownKey && m.children.length>0;
+  const seq=++renderSeq;
+  const focusId = soft && document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) ? document.activeElement.id : '';
+  if(soft) m.style.minHeight=m.offsetHeight+'px';   // page can't collapse while the cards are swapped, so scroll stays put
+  else { m.style.minHeight=''; m.innerHTML='<div class="empty">Loading…</div>'; window.scrollTo(0,0); }
+  shownKey=key;
   try{
     if(S.view==='today') await vToday(m);
     else if(S.view==='projects') await (S.projDetail? vProject(m, S.projDetail) : vProjects(m));
@@ -604,7 +614,11 @@ async function render(){
     else if(S.view==='exercise') await vExercise(m);
     else if(S.view==='reflect') await vReflect(m);
     else if(S.view==='coach') await vCoach(m);
-  }catch(e){ m.innerHTML='<div class="card"><div class="empty">Something went wrong loading this view. Pull to refresh or try again.</div></div>'; }
+  }catch(e){ if(!soft) m.innerHTML='<div class="card"><div class="empty">Something went wrong loading this view. Pull to refresh or try again.</div></div>'; }
+  if(seq===renderSeq){
+    m.style.minHeight='';
+    if(focusId){ const el=document.getElementById(focusId); if(el) el.focus({preventScroll:true}); }
+  }
 }
 
 // TODAY
@@ -637,7 +651,14 @@ async function vToday(m){
     if(mode==='task'){
       capArea.innerHTML='<div class="addrow"><input id="cap-task" placeholder="Add a task — anything on your mind…">'+projSelect('cap-proj')+'</div>'+
         '<div class="addrow"><input id="cap-due" type="date" value="'+today+'" style="flex:0 1 auto"><button class="btn" id="cap-go" style="margin-left:auto">Add task</button></div>';
-      const go=async ()=>{ const v=$('#cap-task').value.trim(); if(!v) return; await addTask(v, $('#cap-proj').value, $('#cap-due').value||null); render(); toast('Task added'); };
+      let adding=false;
+      const go=async ()=>{
+        const inp=$('#cap-task'); const v=inp.value.trim(); if(!v || adding) return;
+        adding=true; inp.value='';
+        try{ await addTask(v, $('#cap-proj').value, $('#cap-due').value||null); toast('Task added'); render(); }
+        catch(e){ inp.value=v; }
+        adding=false;
+      };
       capArea.querySelector('#cap-go').onclick=go;
       capArea.querySelector('#cap-task').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
     } else if(mode==='note'){
@@ -792,8 +813,10 @@ async function vProject(m, pid){
   add.innerHTML='<input id="pt-title" placeholder="Add task…"><input id="pt-due" type="date" style="width:auto"><button class="btn small" id="pt-go">Add</button>';
   tc.appendChild(add);
   tc.querySelector('#pt-go').onclick=async ()=>{
-    const v=$('#pt-title').value.trim(); if(!v) return;
-    await addTask(v, pid, $('#pt-due').value||null); render(); toast('Added');
+    const inp=$('#pt-title'); const v=inp.value.trim(); if(!v) return;
+    inp.value='';
+    try{ await addTask(v, pid, $('#pt-due').value||null); toast('Added'); render(); }
+    catch(e){ inp.value=v; }
   };
   tc.querySelector('#pt-title').addEventListener('keydown',e=>{ if(e.key==='Enter') tc.querySelector('#pt-go').click(); });
   if(done.length){
@@ -913,7 +936,12 @@ const HMETRICS={
 };
 // Watch tiles only appear once Apple Health data exists — latest()==null skips them.
 // Exercise-centric tiles (rings, exercise minutes, VO2 max, workouts) live on the Exercise tab.
-const TILE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','deep_sleep_watch','active_cal'];
+// The Health tab leads with three tile groups. Rings, workout history and the weekly plan stay on the Exercise tab.
+const TILE_GROUPS=[
+  ['Sleep',['sleep_hours','sleep_hours_watch','sleep_score','deep_sleep','deep_sleep_watch','rem_sleep','rem_sleep_watch','sleep_efficiency']],
+  ['Exercise',['exercise_min','steps','active_cal','active_energy','vo2_max']],
+  ['Markers',['readiness','hrv','resting_hr','resp_rate','weight']],
+];
 const TABLE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','deep_sleep_watch','rem_sleep','rem_sleep_watch','sleep_efficiency','sleep_efficiency_watch','steps','activity_score','active_cal','active_energy','exercise_min','stand_hours','vo2_max','workout','weight'];
 const SPARK_COLORS=['var(--accent)','var(--accent2)','var(--accent3)'];
 function sparkline(vals,color){
@@ -959,6 +987,33 @@ async function vHealth(m){
   const hasOura = logs.some(l=>l.source==='oura');
   const fmtN=(v,dec)=> v==null?'—' : (dec? (Math.round(v*10)/10).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}) : Math.round(v).toLocaleString());
 
+  // ---- Metric tiles: Sleep, Exercise, Markers ----
+  let ci=0;
+  for(const [title, keys] of TILE_GROUPS){
+    const present=keys.filter(k=>latest(k)!=null);
+    if(!present.length) continue;
+    const cT=document.createElement('div'); cT.className='card';
+    cT.innerHTML='<h2>'+title+'</h2><div class="mtiles"></div>';
+    const grid=cT.querySelector('.mtiles');
+    for(const key of present){
+      const cfg=HMETRICS[key]; const lv=latest(key);
+      const a7=avg(series(key,7)), a30=avg(series(key,30));
+      let cls='flat', arrow='→';
+      if(a7!=null && a30!=null && Math.abs(a7-a30) > Math.abs(a30)*0.01){
+        const up=a7>a30; arrow=up?'↑':'↓';
+        cls = cfg.better==='neutral'? 'flat' : ((cfg.better==='high')===up ? 'good':'bad');
+      }
+      const color=SPARK_COLORS[ci++%3];
+      const tile=document.createElement('div'); tile.className='mtile';
+      tile.innerHTML='<div class="lab">'+cfg.label+'</div>'+
+        '<div class="val">'+fmtN(lv,cfg.dec)+(cfg.unit?'<span class="u">'+cfg.unit+'</span>':'')+'</div>'+
+        sparkline(series(key,14),color)+
+        '<div class="sub"><span class="delta '+cls+'">'+arrow+' 7d '+fmtN(a7,cfg.dec)+'</span><span>· 30d '+fmtN(a30,cfg.dec)+'</span></div>';
+      grid.appendChild(tile);
+    }
+    m.appendChild(cT);
+  }
+
   // ---- Analysis card ----
   const ha=S.profile.health_analysis;
   const cA=document.createElement('div'); cA.className='card';
@@ -993,68 +1048,6 @@ async function vHealth(m){
     }catch(e){ rb.disabled=false; }
   };
   m.appendChild(cA);
-
-  // ---- Bloodwork card (lab_results: latest draw vs the one before, plus Claude's written read in health_analysis.labs_md) ----
-  if(labs && labs.length){
-    const cL=document.createElement('div'); cL.className='card';
-    const dates=[...new Set(labs.map(l=>l.collected_on))].sort().reverse();
-    const latestD=dates[0], priorD=dates[1];
-    const cur=labs.filter(l=>l.collected_on===latestD);
-    const prior=Object.fromEntries(labs.filter(l=>l.collected_on===priorD).map(l=>[l.panel+'|'+l.component,l]));
-    const panels=[...new Set(cur.map(l=>l.panel))];
-    cL.innerHTML='<h2>Bloodwork</h2><div class="small muted" style="margin:-4px 0 10px">'+esc(panels.join(', '))+' · drawn '+fmtD(latestD)+(cur[0]?.lab?' · '+esc(cur[0].lab):'')+(priorD?' · compared with '+fmtD(priorD):'')+'</div>';
-    if(ha && ha.labs_md){
-      cL.innerHTML+='<div class="analysis" style="margin-bottom:12px"><div class="blk"><h4>What it says <span class="rng">'+(ha.labs_updated_at?'read '+fmtD(String(ha.labs_updated_at).slice(0,10)):'')+'</span></h4><div class="body">'+md(ha.labs_md)+'</div></div></div>';
-    }
-    const fmtV=l=> l.value==null ? esc(l.value_text||'—') : (Number(l.value)%1 ? Number(l.value).toFixed(2).replace(/0$/,'') : String(Number(l.value)));
-    const range=l=> (l.ref_low!=null && l.ref_high!=null) ? l.ref_low+'–'+l.ref_high : l.ref_high!=null ? '≤'+l.ref_high : l.ref_low!=null ? '>'+l.ref_low : '';
-    const edge=l=>{ if(l.flag) return l.flag; if(l.value==null || l.ref_low==null || l.ref_high==null) return ''; const v=Number(l.value), span=l.ref_high-l.ref_low; if(v>=l.ref_high-span*0.05) return 'edge-high'; if(v<=l.ref_low+span*0.05) return 'edge-low'; return ''; };
-    let rows='';
-    for(const l of cur){
-      const p=prior[l.panel+'|'+l.component];
-      let delta='';
-      if(p && p.value!=null && l.value!=null){
-        const d=Number(l.value)-Number(p.value); const pct=Number(p.value)? Math.abs(d/Number(p.value)) : 0;
-        delta='<span class="small'+(pct>=0.15?'':' muted')+'">'+fmtV(p)+' '+(d>0?'↑':d<0?'↓':'→')+'</span>';
-      }
-      const e=edge(l);
-      const chip = (e==='high'||e==='low') ? ' <span class="chip amber">'+e+'</span>' : e ? ' <span class="chip">'+(e==='edge-high'?'top of range':'bottom of range')+'</span>' : '';
-      rows+='<tr><td>'+esc(l.component)+chip+'</td><td><strong>'+fmtV(l)+'</strong> <span class="small muted">'+esc(l.unit||'')+'</span></td><td>'+delta+'</td><td class="small muted">'+esc(range(l))+'</td></tr>';
-    }
-    const wrap=document.createElement('div'); wrap.style.overflowX='auto';
-    wrap.innerHTML='<table class="h7"><thead><tr><th>Test</th><th>'+fmtD(latestD)+'</th><th>'+(priorD?'Prior ('+fmtD(priorD)+')':'')+'</th><th>Range</th></tr></thead><tbody>'+rows+'</tbody></table>';
-    cL.appendChild(wrap);
-    const note=document.createElement('div'); note.className='small muted'; note.style.marginTop='8px';
-    note.textContent='Values as reported by the lab. Claude\'s read is context for your conversation with your doctor, not a diagnosis.';
-    cL.appendChild(note);
-    m.appendChild(cL);
-  }
-
-  // ---- Metric tiles ----
-  if(allDays.length){
-    const cT=document.createElement('div'); cT.className='card';
-    cT.innerHTML='<h2>Measurements</h2><div class="mtiles"></div>';
-    const grid=cT.querySelector('.mtiles');
-    let ci=0;
-    for(const key of TILE_ORDER){
-      const cfg=HMETRICS[key]; const lv=latest(key); if(lv==null) continue;
-      const a7=avg(series(key,7)), a30=avg(series(key,30));
-      let cls='flat', arrow='→';
-      if(a7!=null && a30!=null && Math.abs(a7-a30) > Math.abs(a30)*0.01){
-        const up=a7>a30; arrow=up?'↑':'↓';
-        const good = cfg.better==='neutral'? 'flat' : ((cfg.better==='high')===up ? 'good':'bad');
-        cls=good;
-      }
-      const color=SPARK_COLORS[ci++%3];
-      const tile=document.createElement('div'); tile.className='mtile';
-      tile.innerHTML='<div class="lab">'+cfg.label+'</div>'+
-        '<div class="val">'+fmtN(lv,cfg.dec)+(cfg.unit?'<span class="u">'+cfg.unit+'</span>':'')+'</div>'+
-        sparkline(series(key,14),color)+
-        '<div class="sub"><span class="delta '+cls+'">'+arrow+' 7d '+fmtN(a7,cfg.dec)+'</span><span>· 30d '+fmtN(a30,cfg.dec)+'</span></div>';
-      grid.appendChild(tile);
-    }
-    m.appendChild(cT);
-  }
 
   // ---- Quick log ----
   const c1=document.createElement('div'); c1.className='card';
@@ -1111,6 +1104,42 @@ async function vHealth(m){
       : ' Apple Watch: tell Claude <em>"set up Apple Health import"</em>.')+
     ' Self-reported logs always work.</div>';
   m.appendChild(c4);
+
+  // ---- Bloodwork card (lab_results: latest draw vs the one before, plus Claude's written read in health_analysis.labs_md) ----
+  if(labs && labs.length){
+    const cL=document.createElement('div'); cL.className='card';
+    const dates=[...new Set(labs.map(l=>l.collected_on))].sort().reverse();
+    const latestD=dates[0], priorD=dates[1];
+    const cur=labs.filter(l=>l.collected_on===latestD);
+    const prior=Object.fromEntries(labs.filter(l=>l.collected_on===priorD).map(l=>[l.panel+'|'+l.component,l]));
+    const panels=[...new Set(cur.map(l=>l.panel))];
+    cL.innerHTML='<h2>Bloodwork</h2><div class="small muted" style="margin:-4px 0 10px">'+esc(panels.join(', '))+' · drawn '+fmtD(latestD)+(cur[0]?.lab?' · '+esc(cur[0].lab):'')+(priorD?' · compared with '+fmtD(priorD):'')+'</div>';
+    if(ha && ha.labs_md){
+      cL.innerHTML+='<div class="analysis" style="margin-bottom:12px"><div class="blk"><h4>What it says <span class="rng">'+(ha.labs_updated_at?'read '+fmtD(String(ha.labs_updated_at).slice(0,10)):'')+'</span></h4><div class="body">'+md(ha.labs_md)+'</div></div></div>';
+    }
+    const fmtV=l=> l.value==null ? esc(l.value_text||'—') : (Number(l.value)%1 ? Number(l.value).toFixed(2).replace(/0$/,'') : String(Number(l.value)));
+    const range=l=> (l.ref_low!=null && l.ref_high!=null) ? l.ref_low+'–'+l.ref_high : l.ref_high!=null ? '≤'+l.ref_high : l.ref_low!=null ? '>'+l.ref_low : '';
+    const edge=l=>{ if(l.flag) return l.flag; if(l.value==null || l.ref_low==null || l.ref_high==null) return ''; const v=Number(l.value), span=l.ref_high-l.ref_low; if(v>=l.ref_high-span*0.05) return 'edge-high'; if(v<=l.ref_low+span*0.05) return 'edge-low'; return ''; };
+    let rows='';
+    for(const l of cur){
+      const p=prior[l.panel+'|'+l.component];
+      let delta='';
+      if(p && p.value!=null && l.value!=null){
+        const d=Number(l.value)-Number(p.value); const pct=Number(p.value)? Math.abs(d/Number(p.value)) : 0;
+        delta='<span class="small'+(pct>=0.15?'':' muted')+'">'+fmtV(p)+' '+(d>0?'↑':d<0?'↓':'→')+'</span>';
+      }
+      const e=edge(l);
+      const chip = (e==='high'||e==='low') ? ' <span class="chip amber">'+e+'</span>' : e ? ' <span class="chip">'+(e==='edge-high'?'top of range':'bottom of range')+'</span>' : '';
+      rows+='<tr><td>'+esc(l.component)+chip+'</td><td><strong>'+fmtV(l)+'</strong> <span class="small muted">'+esc(l.unit||'')+'</span></td><td>'+delta+'</td><td class="small muted">'+esc(range(l))+'</td></tr>';
+    }
+    const wrap=document.createElement('div'); wrap.style.overflowX='auto';
+    wrap.innerHTML='<table class="h7"><thead><tr><th>Test</th><th>'+fmtD(latestD)+'</th><th>'+(priorD?'Prior ('+fmtD(priorD)+')':'')+'</th><th>Range</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    cL.appendChild(wrap);
+    const note=document.createElement('div'); note.className='small muted'; note.style.marginTop='8px';
+    note.textContent='Values as reported by the lab. Claude\'s read is context for your conversation with your doctor, not a diagnosis.';
+    cL.appendChild(note);
+    m.appendChild(cL);
+  }
 }
 function healthForm(kind){
   const f=$('#qform');
