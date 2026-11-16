@@ -888,16 +888,16 @@ async function vGoals(m){
 // HEALTH
 const HA_ORDER='[health-analysis] Re-run the health/exercise/sleep analysis from current data';
 const HMETRICS={
-  sleep_hours:{label:'Sleep',unit:'h',dec:1,better:'high'},
+  sleep_hours:{label:'Sleep (Oura)',unit:'h',dec:1,better:'high'},
   sleep_score:{label:'Sleep Score',unit:'',dec:0,better:'high'},
   readiness:{label:'Readiness',unit:'',dec:0,better:'high'},
-  hrv:{label:'HRV',unit:'ms',dec:0,better:'high'},
-  resting_hr:{label:'Resting HR',unit:'bpm',dec:0,better:'low'},
+  hrv:{label:'HRV (Oura)',unit:'ms',dec:0,better:'high'},
+  resting_hr:{label:'RHR (Oura)',unit:'bpm',dec:0,better:'low'},
   steps:{label:'Steps',unit:'',dec:0,better:'high'},
-  deep_sleep:{label:'Deep Sleep',unit:'h',dec:1,better:'high'},
-  rem_sleep:{label:'REM Sleep',unit:'h',dec:1,better:'high'},
-  sleep_efficiency:{label:'Sleep Effic.',unit:'%',dec:0,better:'high'},
-  resp_rate:{label:'Resp Rate',unit:'br/min',dec:1,better:'neutral'},
+  deep_sleep:{label:'Deep (Oura)',unit:'h',dec:1,better:'high'},
+  rem_sleep:{label:'REM (Oura)',unit:'h',dec:1,better:'high'},
+  sleep_efficiency:{label:'Effic. (Oura)',unit:'%',dec:0,better:'high'},
+  resp_rate:{label:'Resp (Oura)',unit:'br/min',dec:1,better:'neutral'},
   activity_score:{label:'Activity',unit:'',dec:0,better:'high'},
   active_cal:{label:'Active Cal',unit:'kcal',dec:0,better:'high'},
   active_energy:{label:'Move (Watch)',unit:'kcal',dec:0,better:'high'},
@@ -906,15 +906,27 @@ const HMETRICS={
   vo2_max:{label:'VO₂ Max',unit:'',dec:1,better:'high'},
   workout:{label:'Workout',unit:'min',dec:0,better:'high'},
   weight:{label:'Weight',unit:'lb',dec:1,better:'neutral'},
-  sleep_hours_watch:{label:'Sleep (Watch)',unit:'h',dec:1,better:'high'},
-  deep_sleep_watch:{label:'Deep (Watch)',unit:'h',dec:1,better:'high'},
-  rem_sleep_watch:{label:'REM (Watch)',unit:'h',dec:1,better:'high'},
-  sleep_efficiency_watch:{label:'Effic. (Watch)',unit:'%',dec:0,better:'high'},
+  sleep_hours_watch:{label:'Sleep',unit:'h',dec:1,better:'high'},
+  deep_sleep_watch:{label:'Deep Sleep',unit:'h',dec:1,better:'high'},
+  rem_sleep_watch:{label:'REM Sleep',unit:'h',dec:1,better:'high'},
+  core_sleep_watch:{label:'Core Sleep',unit:'h',dec:1,better:'neutral'},
+  sleep_efficiency_watch:{label:'Sleep Effic.',unit:'%',dec:0,better:'high'},
+  hrv_watch:{label:'HRV',unit:'ms',dec:0,better:'high'},
+  resting_hr_watch:{label:'Resting HR',unit:'bpm',dec:0,better:'low'},
+  resp_rate_watch:{label:'Resp Rate',unit:'br/min',dec:1,better:'neutral'},
+  spo2:{label:'SpO₂',unit:'%',dec:0,better:'high'},
+  wrist_temp:{label:'Wrist Temp',unit:'°F',dec:1,better:'neutral'},
+  cardio_recovery:{label:'HR Recovery',unit:'bpm',dec:0,better:'high'},
+  walking_hr:{label:'Walking HR',unit:'bpm',dec:0,better:'low'},
+  daylight_min:{label:'Daylight',unit:'min',dec:0,better:'high'},
+  flights:{label:'Flights',unit:'',dec:0,better:'high'},
+  breathing_disturb:{label:'Breath Disturb.',unit:'/night',dec:0,better:'low'},
 };
-// Watch tiles only appear once Apple Health data exists — latest()==null skips them.
+// Watch metrics are primary (unsuffixed labels); Oura columns are labeled "(Oura)" and
+// fade out of tiles/table on their own once Oura stops syncing (no data in the window).
 // Exercise-centric tiles (rings, exercise minutes, VO2 max, workouts) live on the Exercise tab.
-const TILE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','steps','deep_sleep','deep_sleep_watch','active_cal'];
-const TABLE_ORDER=['sleep_hours','sleep_hours_watch','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','deep_sleep_watch','rem_sleep','rem_sleep_watch','sleep_efficiency','sleep_efficiency_watch','steps','activity_score','active_cal','active_energy','exercise_min','stand_hours','vo2_max','workout','weight'];
+const TILE_ORDER=['sleep_hours_watch','deep_sleep_watch','rem_sleep_watch','sleep_efficiency_watch','hrv_watch','resting_hr_watch','spo2','resp_rate_watch','wrist_temp','steps','sleep_score','readiness'];
+const TABLE_ORDER=['sleep_hours_watch','deep_sleep_watch','rem_sleep_watch','core_sleep_watch','sleep_efficiency_watch','hrv_watch','resting_hr_watch','spo2','resp_rate_watch','wrist_temp','breathing_disturb','cardio_recovery','walking_hr','sleep_hours','sleep_score','readiness','hrv','resting_hr','resp_rate','deep_sleep','rem_sleep','sleep_efficiency','steps','flights','daylight_min','activity_score','active_cal','active_energy','exercise_min','stand_hours','vo2_max','workout','weight'];
 const SPARK_COLORS=['var(--accent)','var(--accent2)','var(--accent3)'];
 function sparkline(vals,color){
   vals=vals.filter(v=>v!=null);
@@ -946,12 +958,12 @@ async function vHealth(m){
   for(const l of logs){
     const d=(byDay[l.log_date] ||= {});
     if(l.metric==='workout') d.workout=(d.workout||0)+Number(l.value||0);
-    else if(l.metric==='steps'){ if(l.source==='oura' || d.steps==null) d.steps=Math.round(Number(l.value)); }
+    else if(l.metric==='steps'){ if(l.source==='apple_watch' || d.steps==null) d.steps=Math.round(Number(l.value)); }
     else d[l.metric]=Number(l.value);
   }
   const allDays=Object.keys(byDay).sort();
   // Cumulative metrics accrue over the day, so today's value is partial — exclude it from tiles/averages.
-  const CUMULATIVE=new Set(['steps','active_cal','active_energy','activity_score','workout','exercise_min','stand_hours']);
+  const CUMULATIVE=new Set(['steps','active_cal','active_energy','activity_score','workout','exercise_min','stand_hours','flights','daylight_min']);
   const daysFor=metric=> CUMULATIVE.has(metric)? allDays.filter(d=>d<today) : allDays;
   const series=(metric,n)=>{ const ds=daysFor(metric).slice(-n); return ds.map(d=>byDay[d][metric]).filter(v=>v!=null); };
   const avg=arr=>arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : null;
